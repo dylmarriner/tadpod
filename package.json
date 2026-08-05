@@ -9,6 +9,7 @@
     "dev": "turbo dev --parallel",
     "lint": "turbo lint",
     "test": "turbo test",
+    "test:e2e": "playwright test",
     "typecheck": "turbo typecheck",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @tadpods/database prisma:generate",
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.54.2",
     "@types/node": "^24.1.0",
     "eslint": "^9.32.0",
     "turbo": "^2.5.6",

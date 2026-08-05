@@ -1,0 +1,47 @@
+name: Verify TADPODS
+on:
+  pull_request:
+  push:
+    branches: [main, phase1-platform-foundation-main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: tadpods
+          POSTGRES_USER: tadpods
+          POSTGRES_PASSWORD: tadpods-ci-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tadpods -d tadpods"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://tadpods:tadpods-ci-password@127.0.0.1:5432/tadpods?schema=public
+      AUTH_SECRET: tadpods-ci-authentication-secret-value-2026
+      CORS_ORIGIN: http://127.0.0.1:3000
+      API_URL: http://127.0.0.1:4000
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:4000
+      SEED_ADMIN_EMAIL: admin@tadpods.local
+      SEED_ADMIN_PASSWORD: ChangeMe-123!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm --filter @tadpods/database prisma:validate
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm db:seed
+      - run: pnpm verify
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
