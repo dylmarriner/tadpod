@@ -33,7 +33,7 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(hash: string, password: string): Promise<boolean> {
   try {
-    return await argon2.verify(hash, password, { type: argon2.argon2id });
+    return await argon2.verify(hash, password);
   } catch {
     return false;
   }
