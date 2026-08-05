@@ -98,6 +98,12 @@ async function seed(): Promise<void> {
 
   await prisma.taxRate.upsert({ where: { code: 'GST15' }, update: { name: 'GST 15%', rateBasis: 150000 }, create: { code: 'GST15', name: 'GST 15%', rateBasis: 150000 } });
   await prisma.taxRate.upsert({ where: { code: 'ZERO' }, update: { name: 'Zero rated', rateBasis: 0 }, create: { code: 'ZERO', name: 'Zero rated', rateBasis: 0 } });
+
+  await prisma.warehouse.upsert({
+    where: { code: 'MAIN' },
+    update: {},
+    create: { code: 'MAIN', name: 'Main warehouse', status: 'ACTIVE', isDefault: true }
+  });
 }
 
 seed()
