@@ -1,10 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const commonEnvironment = {
-  ...process.env,
-  NODE_ENV: 'production'
-};
-
 export default defineConfig({
   testDir: './apps/web/e2e',
   timeout: 30_000,
@@ -25,7 +20,8 @@ export default defineConfig({
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
-        ...commonEnvironment,
+        ...process.env,
+        NODE_ENV: 'test',
         API_PORT: '4000',
         CORS_ORIGIN: 'http://127.0.0.1:3000'
       }
@@ -38,7 +34,8 @@ export default defineConfig({
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
-        ...commonEnvironment,
+        ...process.env,
+        NODE_ENV: 'production',
         NEXT_PUBLIC_API_URL: 'http://127.0.0.1:4000',
         API_URL: 'http://127.0.0.1:4000'
       }
