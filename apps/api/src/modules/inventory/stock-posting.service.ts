@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { hasPermission } from '@tadpods/auth';
 import { buildReversal, Quantity, validateMovementDirection, type StockMovementType } from '@tadpods/domain';
-import { database, Prisma, withTransaction, type DatabaseTransaction, type StockMovement as StockMovementRow } from '@tadpods/database';
+import { Prisma, withTransaction, type DatabaseTransaction, type StockMovement as StockMovementRow } from '@tadpods/database';
 import type { PostStockMovementInput, ReverseStockMovementInput } from '@tadpods/contracts';
 
 export type InventoryRequestContext = {
@@ -115,7 +115,104 @@ export class StockPostingService {
     actor: PostingActor,
     context: InventoryRequestContext
   ): Promise<StockMovementRow> {
-    const original = await database.stockMovement.findUnique({ where: { id: movementId } });
+    return postWithSerializationRetry(() => withTransaction((transaction) => this.insertReversal(transaction, movementId, input, actor, context)));
+  }
+
+  /**
+   * Post several movements as one atomic unit — either all of them post, or none do. This is
+   * the primitive behind multi-line workflows that must never post only one side of a linked
+   * pair (warehouse transfers: Task 4; stock-count corrections: Task 5). Every distinct
+   * `(productId, warehouseId)` key touched by the batch is advisory-locked up front, in a
+   * fixed sorted order, before any balance check or insert runs — this prevents two
+   * concurrent batches from deadlocking each other by locking the same two keys in opposite
+   * order (e.g. two transfers between the same pair of warehouses in opposite directions).
+   */
+  async postMovements(
+    inputs: readonly PostStockMovementInput[],
+    actor: PostingActor,
+    context: InventoryRequestContext
+  ): Promise<StockMovementRow[]> {
+    if (inputs.length === 0) throw new BadRequestException('At least one movement is required');
+
+    const parsed = inputs.map((input) => {
+      const signedQuantity = this.parseQuantity(input.signedQuantity);
+      this.validateDirection(input.movementType, signedQuantity);
+      return { input, signedQuantity };
+    });
+
+    return postWithSerializationRetry(() => withTransaction(async (transaction) => {
+      await this.lockKeysInOrder(transaction, parsed.map(({ input }) => `${input.productId}:${input.warehouseId}`));
+
+      const results: StockMovementRow[] = [];
+      for (const { input, signedQuantity } of parsed) {
+        results.push(await this.insertMovement(
+          transaction,
+          {
+            productId: input.productId,
+            warehouseId: input.warehouseId,
+            movementType: input.movementType,
+            signedQuantity,
+            sourceType: input.sourceType,
+            sourceId: input.sourceId,
+            sourceLineId: input.sourceLineId,
+            idempotencyKey: input.idempotencyKey,
+            reversalOfId: null,
+            notes: input.notes ?? null,
+            allowNegativeStockOverride: input.allowNegativeStockOverride
+          },
+          actor,
+          'inventory.movement.post',
+          context,
+          undefined,
+          /* skipLock */ true
+        ));
+      }
+      return results;
+    }));
+  }
+
+  /**
+   * Reverse several posted movements as one atomic unit — the batch counterpart to
+   * `reverseMovement`, used to reverse both sides of a linked pair together (a transfer's
+   * out/in movements) rather than leaving one side reversed and the other posted.
+   */
+  async reverseMovements(
+    movementIds: readonly string[],
+    input: ReverseStockMovementInput,
+    actor: PostingActor,
+    context: InventoryRequestContext
+  ): Promise<StockMovementRow[]> {
+    if (movementIds.length === 0) throw new BadRequestException('At least one movement is required');
+
+    return postWithSerializationRetry(() => withTransaction(async (transaction) => {
+      const originals = await transaction.stockMovement.findMany({ where: { id: { in: [...movementIds] } } });
+      if (originals.length !== movementIds.length) throw new NotFoundException('Stock movement not found');
+      await this.lockKeysInOrder(transaction, originals.map((movement) => `${movement.productId}:${movement.warehouseId}`));
+
+      const results: StockMovementRow[] = [];
+      for (const movementId of movementIds) {
+        results.push(await this.insertReversal(
+          transaction,
+          movementId,
+          { ...input, idempotencyKey: `${input.idempotencyKey}:${movementId}` },
+          actor,
+          context,
+          /* skipLock */ true
+        ));
+      }
+      return results;
+    }));
+  }
+
+  private async insertReversal(
+    transaction: DatabaseTransaction,
+    movementId: string,
+    input: ReverseStockMovementInput,
+    actor: PostingActor,
+    context: InventoryRequestContext,
+    skipLock = false
+  ): Promise<StockMovementRow> {
+    const original = await transaction.stockMovement.findUnique({ where: { id: movementId } });
     if (!original) throw new NotFoundException('Stock movement not found');
 
     const reversal = buildReversal({
@@ -125,33 +222,40 @@ export class StockPostingService {
       signedQuantity: this.parseQuantity(original.signedQuantity.toString())
     });
 
-    return postWithSerializationRetry(() => withTransaction((transaction) =>
-      this.insertMovement(
-        transaction,
-        {
-          productId: reversal.productId,
-          warehouseId: reversal.warehouseId,
-          movementType: reversal.movementType,
-          signedQuantity: reversal.signedQuantity,
-          sourceType: reversal.sourceType,
-          sourceId: reversal.sourceId,
-          sourceLineId: reversal.sourceLineId,
-          idempotencyKey: input.idempotencyKey,
-          reversalOfId: reversal.reversalOfId,
-          notes: input.notes ?? null,
-          // A reversal is not a discretionary posting the caller opts into going negative
-          // on — it is the system correcting the ledger. `insertMovement` still requires
-          // the actor to hold the override permission and the system setting to be on
-          // before it allows the resulting balance to go negative; this flag just means
-          // "evaluate that rule" rather than skip the negative-stock check outright.
-          allowNegativeStockOverride: true
-        },
-        actor,
-        'inventory.movement.reverse',
-        context,
-        'This stock movement has already been reversed'
-      )
-    ));
+    return this.insertMovement(
+      transaction,
+      {
+        productId: reversal.productId,
+        warehouseId: reversal.warehouseId,
+        movementType: reversal.movementType,
+        signedQuantity: reversal.signedQuantity,
+        sourceType: reversal.sourceType,
+        sourceId: reversal.sourceId,
+        sourceLineId: reversal.sourceLineId,
+        idempotencyKey: input.idempotencyKey,
+        reversalOfId: reversal.reversalOfId,
+        notes: input.notes ?? null,
+        // A reversal is not a discretionary posting the caller opts into going negative
+        // on — it is the system correcting the ledger. `insertMovement` still requires
+        // the actor to hold the override permission and the system setting to be on
+        // before it allows the resulting balance to go negative; this flag just means
+        // "evaluate that rule" rather than skip the negative-stock check outright.
+        allowNegativeStockOverride: true
+      },
+      actor,
+      'inventory.movement.reverse',
+      context,
+      'This stock movement has already been reversed',
+      skipLock
+    );
+  }
+
+  /** Acquire a transaction-scoped advisory lock per distinct key, in a fixed sorted order. */
+  private async lockKeysInOrder(transaction: DatabaseTransaction, keys: readonly string[]): Promise<void> {
+    const distinctSortedKeys = [...new Set(keys)].sort();
+    for (const key of distinctSortedKeys) {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+    }
   }
 
   private async insertMovement(
@@ -160,7 +264,8 @@ export class StockPostingService {
     actor: PostingActor,
     auditAction: string,
     context: InventoryRequestContext,
-    sourceConflictMessage = 'This source line has already posted a stock effect'
+    sourceConflictMessage = 'This source line has already posted a stock effect',
+    skipLock = false
   ): Promise<StockMovementRow> {
     // Idempotent retry: the same posting request, resent, returns the original result
     // rather than posting (or failing to post) a second time.
@@ -175,8 +280,12 @@ export class StockPostingService {
     // hashing the (product, warehouse) pair, plays that role instead: it blocks a second
     // concurrent poster to the same key until the first commits or rolls back, without
     // requiring a mutable "current balance" row that would itself need to stay in sync.
-    const lockKey = `${input.productId}:${input.warehouseId}`;
-    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+    // Batch callers (`postMovements`) lock every key up front in a fixed order and pass
+    // `skipLock: true` here to avoid re-acquiring locks out of that order.
+    if (!skipLock) {
+      const lockKey = `${input.productId}:${input.warehouseId}`;
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+    }
 
     const currentBalance = await transaction.stockMovement.aggregate({
       where: { productId: input.productId, warehouseId: input.warehouseId },
