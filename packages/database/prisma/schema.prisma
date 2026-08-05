@@ -37,6 +37,20 @@ enum WarehouseStatus {
   ARCHIVED
 }
 
+enum StockMovementType {
+  OPENING_STOCK
+  GOODS_RECEIPT
+  SALES_DELIVERY
+  CUSTOMER_RETURN
+  SUPPLIER_RETURN
+  WAREHOUSE_TRANSFER_OUT
+  WAREHOUSE_TRANSFER_IN
+  POSITIVE_ADJUSTMENT
+  NEGATIVE_ADJUSTMENT
+  STOCK_COUNT_CORRECTION
+  REVERSAL
+}
+
 model User {
   id           String           @id @default(uuid()) @db.Uuid
   email        String           @unique @db.VarChar(254)
@@ -51,6 +65,7 @@ model User {
   sessions     RefreshSession[]
   auditLogs    AuditLog[]
   attachments  Attachment[]     @relation("AttachmentUploader")
+  stockMovements StockMovement[] @relation("StockMovementActor")
 
   @@index([status, email])
 }
@@ -274,6 +289,7 @@ model Product {
   taxRate                TaxRate?          @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
   preferredSupplier      Supplier?         @relation("ProductPreferredSupplier", fields: [preferredSupplierId], references: [id], onDelete: SetNull)
   suppliers              ProductSupplier[]
+  stockMovements         StockMovement[]
 
   @@index([categoryId])
   @@index([status])
@@ -311,6 +327,51 @@ model Warehouse {
   isDefault    Boolean         @default(false)
   createdAt    DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime        @updatedAt @db.Timestamptz(6)
+  stockMovements StockMovement[]
 
   @@index([status])
+}
+
+// --- Phase 2 Task 2: immutable stock-movement ledger ---
+//
+// `StockMovement` is the sole source of truth for stock on hand — no `Product` or
+// `Warehouse` row stores an editable balance. Rows are append-only: corrections are made
+// with an equal-and-opposite `REVERSAL` row linked via `reversalOfId`, never by editing or
+// deleting a posted row. Immutability is enforced twice: the service layer exposes no
+// update/delete methods, and a Postgres trigger (added in this task's migration) rejects
+// any `UPDATE`/`DELETE` against this table outright, so a bug or a direct SQL session can't
+// silently corrupt posted history either.
+//
+// `(sourceType, sourceId, sourceLineId)` is unique so a given external event (e.g. one
+// goods-receipt line) can only ever create a stock effect once, even under retries.
+// `idempotencyKey` is a second, independent uniqueness guard for client-side retry safety
+// on the posting request itself (a client can resend the same `POST` and get the original
+// result back rather than a duplicate or an error).
+model StockMovement {
+  id             String            @id @default(uuid()) @db.Uuid
+  productId      String            @db.Uuid
+  warehouseId    String            @db.Uuid
+  movementType   StockMovementType
+  signedQuantity Decimal           @db.Decimal(18, 4)
+  postedAt       DateTime          @default(now()) @db.Timestamptz(6)
+  sourceType     String            @db.VarChar(60)
+  sourceId       String            @db.VarChar(120)
+  sourceLineId   String            @db.VarChar(120)
+  idempotencyKey String?           @unique @db.VarChar(200)
+  reversalOfId   String?           @db.Uuid
+  actorId        String?           @db.Uuid
+  notes          String?           @db.VarChar(2000)
+  createdAt      DateTime          @default(now()) @db.Timestamptz(6)
+
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  warehouse   Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  actor       User?           @relation("StockMovementActor", fields: [actorId], references: [id], onDelete: SetNull)
+  reversalOf  StockMovement?  @relation("StockMovementReversal", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversedBy  StockMovement[] @relation("StockMovementReversal")
+
+  @@unique([sourceType, sourceId, sourceLineId])
+  @@index([productId, warehouseId])
+  @@index([warehouseId])
+  @@index([reversalOfId])
+  @@index([postedAt])
 }

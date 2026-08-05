@@ -1,5 +1,17 @@
 export { Money } from './money.js';
 export { Quantity } from './quantity.js';
+export {
+  STOCK_MOVEMENT_TYPES,
+  validateMovementDirection,
+  computeStockOnHand,
+  computeStockByWarehouse,
+  buildReversal,
+  type StockMovementType,
+  type PostedMovementLike,
+  type WarehouseMovementLike,
+  type ReversibleMovement,
+  type ReversalMovementInput
+} from './inventory.js';
 
 export type Brand<T, Name extends string> = T & { readonly __brand: Name };
 export type UserId = Brand<string, 'UserId'>;

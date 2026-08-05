@@ -23,6 +23,7 @@
     "@tadpods/config": "workspace:*",
     "@tadpods/contracts": "workspace:*",
     "@tadpods/database": "workspace:*",
+    "@tadpods/domain": "workspace:*",
     "fastify": "5.4.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",

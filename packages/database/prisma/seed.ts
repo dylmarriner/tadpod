@@ -15,6 +15,7 @@ const permissions = [
   ['purchasing.write', 'Create and update purchasing records'],
   ['inventory.read', 'View inventory records'],
   ['inventory.write', 'Post inventory operations'],
+  ['inventory.override-negative-stock', 'Post stock movements that would take stock on hand below zero'],
   ['customers.read', 'View customer accounts'],
   ['customers.write', 'Manage customer accounts'],
   ['suppliers.read', 'View supplier accounts'],

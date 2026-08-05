@@ -4,10 +4,12 @@ import { loadEnvironment } from '@tadpods/config';
 import { AuthenticationGuard, PermissionGuard } from './auth.guards.js';
 import { AuditController, AuthController, BrandController, DashboardController, HealthController, RolesController, SequenceController, UsersController } from './controllers.js';
 import { HttpErrorFilter } from './http-error.filter.js';
+import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { PlatformService } from './platform.service.js';
 import { APP_ENVIRONMENT } from './platform.tokens.js';
 
 @Module({
+  imports: [InventoryModule],
   controllers: [HealthController, AuthController, BrandController, DashboardController, UsersController, RolesController, AuditController, SequenceController],
   providers: [
     PlatformService,
