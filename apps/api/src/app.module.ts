@@ -1,0 +1,20 @@
+import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { loadEnvironment } from '@tadpods/config';
+import { AuthenticationGuard, PermissionGuard } from './auth.guards.js';
+import { AuditController, AuthController, BrandController, DashboardController, HealthController, RolesController, SequenceController, UsersController } from './controllers.js';
+import { HttpErrorFilter } from './http-error.filter.js';
+import { PlatformService } from './platform.service.js';
+import { APP_ENVIRONMENT } from './platform.tokens.js';
+
+@Module({
+  controllers: [HealthController, AuthController, BrandController, DashboardController, UsersController, RolesController, AuditController, SequenceController],
+  providers: [
+    PlatformService,
+    { provide: APP_ENVIRONMENT, useValue: loadEnvironment(process.env) },
+    { provide: APP_GUARD, useClass: AuthenticationGuard },
+    { provide: APP_GUARD, useClass: PermissionGuard },
+    { provide: APP_FILTER, useClass: HttpErrorFilter }
+  ]
+})
+export class AppModule {}

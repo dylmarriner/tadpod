@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.superpowers/
+.worktrees/
+packages/database/prisma/dev.db

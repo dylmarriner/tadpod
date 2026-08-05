@@ -1,0 +1,3 @@
+export const APP_ENVIRONMENT = Symbol('APP_ENVIRONMENT');
+export const IS_PUBLIC_ROUTE = Symbol('IS_PUBLIC_ROUTE');
+export const REQUIRED_PERMISSION = Symbol('REQUIRED_PERMISSION');
