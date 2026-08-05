@@ -202,14 +202,16 @@ export class PlatformService {
     createdAt: Date;
   }>> {
     return database.user.findMany({
-      where: search
+      ...(search
         ? {
-            OR: [
-              { email: { contains: search.toLowerCase(), mode: 'insensitive' } },
-              { displayName: { contains: search, mode: 'insensitive' } }
-            ]
+            where: {
+              OR: [
+                { email: { contains: search.toLowerCase(), mode: 'insensitive' as const } },
+                { displayName: { contains: search, mode: 'insensitive' as const } }
+              ]
+            }
           }
-        : undefined,
+        : {}),
       orderBy: [{ displayName: 'asc' }, { email: 'asc' }],
       include: { roles: { include: { role: true } } }
     }).then((users) => users.map((user) => ({
@@ -326,15 +328,17 @@ export class PlatformService {
 
   listAudit(search?: string) {
     return database.auditLog.findMany({
-      where: search
+      ...(search
         ? {
-            OR: [
-              { action: { contains: search, mode: 'insensitive' } },
-              { entityType: { contains: search, mode: 'insensitive' } },
-              { entityId: { contains: search, mode: 'insensitive' } }
-            ]
+            where: {
+              OR: [
+                { action: { contains: search, mode: 'insensitive' as const } },
+                { entityType: { contains: search, mode: 'insensitive' as const } },
+                { entityId: { contains: search, mode: 'insensitive' as const } }
+              ]
+            }
           }
-        : undefined,
+        : {}),
       take: 100,
       orderBy: { createdAt: 'desc' },
       include: { user: { select: { displayName: true, email: true } } }
