@@ -66,6 +66,7 @@ model User {
   auditLogs    AuditLog[]
   attachments  Attachment[]     @relation("AttachmentUploader")
   stockMovements StockMovement[] @relation("StockMovementActor")
+  stockCountsCreated StockCount[] @relation("StockCountCreatedBy")
 
   @@index([status, email])
 }
@@ -290,6 +291,7 @@ model Product {
   preferredSupplier      Supplier?         @relation("ProductPreferredSupplier", fields: [preferredSupplierId], references: [id], onDelete: SetNull)
   suppliers              ProductSupplier[]
   stockMovements         StockMovement[]
+  stockCountLines        StockCountLine[]
 
   @@index([categoryId])
   @@index([status])
@@ -328,6 +330,7 @@ model Warehouse {
   createdAt    DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime        @updatedAt @db.Timestamptz(6)
   stockMovements StockMovement[]
+  stockCounts    StockCount[]
 
   @@index([status])
 }
@@ -374,4 +377,48 @@ model StockMovement {
   @@index([warehouseId])
   @@index([reversalOfId])
   @@index([postedAt])
+}
+
+enum StockCountStatus {
+  DRAFT
+  POSTED
+}
+
+// A stock count is a draft worksheet: it freezes `expectedQuantity` per line at creation
+// time from the ledger, staff fill in `countedQuantity` as they count, and posting turns
+// each line's variance into a `STOCK_COUNT_CORRECTION` movement through the same
+// `StockPostingService.postMovements` batch primitive transfers use — so a count either
+// posts every non-zero-variance line, or none of them. Once `status` is `POSTED` the count
+// is locked: `StockCountsService` exposes no way to edit a line or repost.
+model StockCount {
+  id          String           @id @default(uuid()) @db.Uuid
+  warehouseId String           @db.Uuid
+  status      StockCountStatus @default(DRAFT)
+  notes       String?          @db.VarChar(2000)
+  createdById String           @db.Uuid
+  postedAt    DateTime?        @db.Timestamptz(6)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+
+  warehouse Warehouse        @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  createdBy User             @relation("StockCountCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  lines     StockCountLine[]
+
+  @@index([warehouseId, status])
+}
+
+model StockCountLine {
+  id               String   @id @default(uuid()) @db.Uuid
+  stockCountId     String   @db.Uuid
+  productId        String   @db.Uuid
+  expectedQuantity Decimal  @db.Decimal(18, 4)
+  countedQuantity  Decimal? @db.Decimal(18, 4)
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
+
+  stockCount StockCount @relation(fields: [stockCountId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([stockCountId, productId])
+  @@index([productId])
 }
