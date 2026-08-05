@@ -1,6 +1,6 @@
 import { Card } from '@tadpods/ui';
 import { RolePermissionsForm } from '../../../../components/admin-forms';
-import { serverApi } from '../../../../lib/api';
+import { serverApi } from '../../../../lib/server-api';
 
 type Role = { id: string; key: string; name: string; description: string | null; userCount: number; permissions: string[] };
 export const metadata = { title: 'Roles and permissions' };

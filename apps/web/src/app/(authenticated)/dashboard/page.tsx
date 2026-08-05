@@ -1,5 +1,5 @@
 import { Card, Badge } from '@tadpods/ui';
-import { serverApi } from '../../../lib/api';
+import { serverApi } from '../../../lib/server-api';
 
 export const metadata = { title: 'Dashboard' };
 

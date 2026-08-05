@@ -1,6 +1,6 @@
 import { Card } from '@tadpods/ui';
 import { LoginForm } from '../../components/login-form';
-import { publicApi } from '../../lib/api';
+import { publicApi } from '../../lib/server-api';
 
 export const metadata = { title: 'Sign in' };
 

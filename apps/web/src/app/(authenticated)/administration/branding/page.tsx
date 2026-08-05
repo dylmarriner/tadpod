@@ -1,6 +1,6 @@
 import { Card } from '@tadpods/ui';
 import { BrandForm } from '../../../../components/admin-forms';
-import { serverApi } from '../../../../lib/api';
+import { serverApi } from '../../../../lib/server-api';
 
 export const metadata = { title: 'Branding' };
 export default async function BrandingPage() {

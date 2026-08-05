@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { AppShell } from '../../components/app-shell';
-import { publicApi, serverApi } from '../../lib/api';
+import { publicApi, serverApi } from '../../lib/server-api';
 
 export default async function AuthenticatedLayout({ children }: { children: ReactNode }) {
   const session = await serverApi<{ user: { id: string; displayName: string; email: string; permissions: string[] } }>('/auth/me').catch(() => null);

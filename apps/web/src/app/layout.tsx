@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
-import { publicApi } from '../lib/api';
+import { publicApi } from '../lib/server-api';
 
 export const metadata: Metadata = {
   title: { default: 'TADPODS', template: '%s | TADPODS' },

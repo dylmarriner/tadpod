@@ -1,6 +1,6 @@
 import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
 import { UserCreateForm, UserRolesForm } from '../../../../components/admin-forms';
-import { serverApi } from '../../../../lib/api';
+import { serverApi } from '../../../../lib/server-api';
 
 type Role = { id: string; key: string; name: string; permissions: string[] };
 type User = { id: string; email: string; displayName: string; status: string; roles: string[]; createdAt: string };

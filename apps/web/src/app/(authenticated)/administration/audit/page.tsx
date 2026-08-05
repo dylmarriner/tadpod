@@ -1,5 +1,5 @@
 import { Card, DataTable, EmptyState } from '@tadpods/ui';
-import { serverApi } from '../../../../lib/api';
+import { serverApi } from '../../../../lib/server-api';
 
 type Audit = { id: string; action: string; entityType: string; entityId: string | null; metadata: unknown; createdAt: string; user: { displayName: string; email: string } | null };
 export const metadata = { title: 'Audit history' };
