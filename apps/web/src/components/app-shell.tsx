@@ -14,7 +14,7 @@ const sections = [
   { label: 'Purchasing', enabled: false },
   { label: 'Inventory', href: '/inventory', permission: 'inventory.read' },
   { label: 'Customers', enabled: false },
-  { label: 'Suppliers', enabled: false },
+  { label: 'Suppliers', href: '/suppliers', permission: 'suppliers.read' },
   { label: 'Reports', enabled: false },
   { label: 'Administration', href: '/administration', permission: 'admin.users' }
 ] as const;

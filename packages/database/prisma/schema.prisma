@@ -235,12 +235,12 @@ model OutboxEvent {
 
 // --- Phase 2: products, categories, supplier codes, warehouses ---
 //
-// A full `suppliers` module (addresses, purchase orders, bills, payments) belongs to Phase 3.
-// Task 1 only needs somewhere real to point `Product.preferredSupplier` and `ProductSupplier`
-// at, so a deliberately minimal `Supplier` table (id/code/name/active) is introduced here rather
-// than inventing fake supplier records or storing supplier code/name as free text on
-// `ProductSupplier`. Phase 3 can widen this table (addresses, contact details, terms, balances)
-// with additive migrations without breaking the foreign keys created in this phase.
+// Phase 2 Task 1 introduced a deliberately minimal `Supplier` table (id/code/name/active)
+// so `Product.preferredSupplier`/`ProductSupplier` had somewhere real to point rather than
+// free text. Phase 3 Task 1 widens it here — addresses, contact details, currency, payment
+// terms — with additive columns and a new `SupplierAddress` table, so the foreign keys
+// created in Phase 2 are untouched. Purchase orders, bills, payments, and credits (Phase 3
+// Tasks 2-6) each add their own tables separately.
 
 model ProductCategory {
   id        String            @id @default(uuid()) @db.Uuid
@@ -255,17 +255,49 @@ model ProductCategory {
   @@index([parentId])
 }
 
+enum SupplierAddressType {
+  BILLING
+  DELIVERY
+  GENERAL
+}
+
 model Supplier {
-  id           String            @id @default(uuid()) @db.Uuid
-  code         String            @unique @db.VarChar(40)
-  name         String            @db.VarChar(160)
-  active       Boolean           @default(true)
-  createdAt    DateTime          @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime          @updatedAt @db.Timestamptz(6)
-  productLinks ProductSupplier[]
-  preferredFor Product[]         @relation("ProductPreferredSupplier")
+  id               String            @id @default(uuid()) @db.Uuid
+  code             String            @unique @db.VarChar(40)
+  name             String            @db.VarChar(160)
+  legalName        String?           @db.VarChar(200)
+  taxNumber        String?           @db.VarChar(40)
+  currency         String            @default("NZD") @db.Char(3)
+  paymentTermsDays Int               @default(20)
+  contactName      String?           @db.VarChar(160)
+  contactEmail     String?           @db.VarChar(254)
+  contactPhone     String?           @db.VarChar(40)
+  notes            String?           @db.VarChar(2000)
+  active           Boolean           @default(true)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(6)
+  productLinks     ProductSupplier[]
+  preferredFor     Product[]         @relation("ProductPreferredSupplier")
+  addresses        SupplierAddress[]
 
   @@index([active])
+}
+
+model SupplierAddress {
+  id           String              @id @default(uuid()) @db.Uuid
+  supplierId   String              @db.Uuid
+  type         SupplierAddressType
+  addressLine1 String?             @db.VarChar(200)
+  addressLine2 String?             @db.VarChar(200)
+  city         String?             @db.VarChar(120)
+  region       String?             @db.VarChar(120)
+  postalCode   String?             @db.VarChar(20)
+  country      String?             @db.VarChar(120)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(6)
+  supplier     Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId, type])
 }
 
 model Product {

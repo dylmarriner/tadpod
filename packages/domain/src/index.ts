@@ -1,6 +1,12 @@
 export { Money } from './money.js';
 export { Quantity } from './quantity.js';
 export {
+  computeSupplierAccount,
+  netAccountsPayable,
+  type SupplierAccountProjection,
+  type SupplierBillForAccount
+} from './supplier-account.js';
+export {
   STOCK_MOVEMENT_TYPES,
   validateMovementDirection,
   computeStockOnHand,
