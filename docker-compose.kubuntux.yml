@@ -1,0 +1,15 @@
+name: tadpods-codex
+
+# Kubuntux development deployment: keep backing services private to the Compose network.
+# Only the browser application and API are published on the host.
+services:
+  postgres:
+    ports: !reset []
+  minio:
+    ports: !reset []
+  mailpit:
+    ports: !reset []
+  web:
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL}
