@@ -10,12 +10,48 @@ if (process.env.NODE_ENV !== 'production') globalDatabase.tadpodsDatabase = data
 
 export type DatabaseTransaction = Prisma.TransactionClient;
 
-export function withTransaction<T>(operation: (transaction: DatabaseTransaction) => Promise<T>): Promise<T> {
-  return database.$transaction((transaction) => operation(transaction), {
-    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    maxWait: 5_000,
-    timeout: 15_000
-  });
+const MAX_SERIALIZATION_RETRIES = 20;
+
+function randomBackoffMs(): number {
+  return 5 + Math.floor(Math.random() * 25);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * `SERIALIZABLE` transactions can abort with a serialization failure (Postgres error
+ * `40001`) any time two concurrent transactions' read/write sets conflict — surfaced by
+ * Prisma either as `P2034` (the whole interactive transaction) or as a `P2010` raw-query
+ * error whose `meta.code` is `40001` (a `$queryRaw` inside the transaction, e.g. a
+ * document-sequence `UPDATE ... RETURNING`). Every write-heavy transaction in this codebase
+ * shares this risk, so `withTransaction` retries it here once, rather than each caller
+ * (`StockPostingService`, `PurchaseOrdersService`'s document numbering, ...) reimplementing
+ * the same retry loop.
+ */
+function isSerializationFailure(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code === 'P2034') return true;
+  return error.code === 'P2010' && (error.meta as { code?: string } | undefined)?.code === '40001';
+}
+
+export async function withTransaction<T>(operation: (transaction: DatabaseTransaction) => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
+    try {
+      return await database.$transaction((transaction) => operation(transaction), {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: 5_000,
+        timeout: 15_000
+      });
+    } catch (error) {
+      if (!isSerializationFailure(error)) throw error;
+      lastError = error;
+      await sleep(randomBackoffMs());
+    }
+  }
+  throw lastError;
 }
 
 export function formatDocumentNumber(prefix: string, value: bigint, padding: number): string {

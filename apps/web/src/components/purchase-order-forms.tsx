@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Field, SelectInput, TextInput } from '@tadpods/ui';
 import { browserApi } from '../lib/api';
+
+const RECEIVABLE_STATUSES = new Set(['CONFIRMED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'PARTIALLY_BILLED', 'BILLED']);
 
 type Supplier = { id: string; code: string; name: string; currency: string };
 type ProductOption = { id: string; sku: string; name: string; barcode: string | null; unitOfMeasure: string };
@@ -158,6 +161,7 @@ export function PurchaseOrderActions({ id, status, canApprove }: { id: string; s
       {status === 'DRAFT' ? <Button variant="secondary" disabled={action.busy} onClick={() => void action.run(`/purchase-orders/${id}/submit`)}>Submit for approval</Button> : null}
       {status === 'AWAITING_APPROVAL' && canApprove ? <Button disabled={action.busy} onClick={() => void action.run(`/purchase-orders/${id}/approve`)}>Approve</Button> : null}
       {(status === 'DRAFT' || status === 'AWAITING_APPROVAL' || status === 'CONFIRMED') ? <Button variant="danger" disabled={action.busy} onClick={() => void action.run(`/purchase-orders/${id}/cancel`, {})}>Cancel</Button> : null}
+      {RECEIVABLE_STATUSES.has(status) ? <Link href={`/purchasing/receipts/new?purchaseOrderId=${id}`}><Button variant="secondary">Receive goods</Button></Link> : null}
       <Button variant="secondary" disabled={duplicating} onClick={() => void duplicate()}>Duplicate</Button>
     </div>
   </div>;

@@ -8,6 +8,7 @@ export * from './transfers.js';
 export * from './stock-counts.js';
 export * from './suppliers.js';
 export * from './purchase-orders.js';
+export * from './goods-receipts.js';
 
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
 export const passwordSchema = z.string().min(12).max(200);

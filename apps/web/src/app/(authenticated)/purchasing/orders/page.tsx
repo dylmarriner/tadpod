@@ -32,7 +32,10 @@ export default async function PurchaseOrdersPage() {
         <h1>Purchase orders</h1>
         <p>Commitments to suppliers. A confirmed order is not a payable — only a posted supplier bill creates one.</p>
       </div>
-      <Link href="/purchasing/orders/new"><Button>New purchase order</Button></Link>
+      <div className="inline">
+        <Link href="/purchasing/receipts"><Button variant="secondary">Goods receipts</Button></Link>
+        <Link href="/purchasing/orders/new"><Button>New purchase order</Button></Link>
+      </div>
     </header>
     <Card title="Orders">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>

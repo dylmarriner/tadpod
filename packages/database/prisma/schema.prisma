@@ -69,6 +69,7 @@ model User {
   stockCountsCreated StockCount[] @relation("StockCountCreatedBy")
   purchaseOrdersCreated  PurchaseOrder[] @relation("PurchaseOrderCreatedBy")
   purchaseOrdersApproved PurchaseOrder[] @relation("PurchaseOrderApprovedBy")
+  goodsReceiptsReceived  GoodsReceipt[]  @relation("GoodsReceiptReceivedBy")
 
   @@index([status, email])
 }
@@ -333,6 +334,7 @@ model Product {
   stockMovements         StockMovement[]
   stockCountLines        StockCountLine[]
   purchaseOrderLines     PurchaseOrderLine[]
+  goodsReceiptLines      GoodsReceiptLine[]
 
   @@index([categoryId])
   @@index([status])
@@ -372,6 +374,7 @@ model Warehouse {
   updatedAt    DateTime        @updatedAt @db.Timestamptz(6)
   stockMovements StockMovement[]
   stockCounts    StockCount[]
+  goodsReceipts  GoodsReceipt[]
 
   @@index([status])
 }
@@ -505,6 +508,7 @@ model PurchaseOrder {
   createdBy  User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   approvedBy User?               @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   lines      PurchaseOrderLine[]
+  goodsReceipts GoodsReceipt[]
 
   @@index([supplierId, status])
   @@index([status])
@@ -522,9 +526,58 @@ model PurchaseOrderLine {
   createdAt              DateTime @default(now()) @db.Timestamptz(6)
   updatedAt              DateTime @updatedAt @db.Timestamptz(6)
 
-  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  product       Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  purchaseOrder PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  receiptLines  GoodsReceiptLine[]
 
   @@index([purchaseOrderId])
   @@index([productId])
+}
+
+// --- Phase 3 Task 3: goods receipts ---
+//
+// A goods receipt posts stock through the Phase 2 `StockPostingService` exactly like every
+// other movement source — each `GoodsReceiptLine` posts one `GOODS_RECEIPT` movement with
+// `sourceType='goods-receipt-line'` and `sourceLineId=<this line's id>`, so the ledger's own
+// duplicate-source-line constraint is what actually prevents a line from ever increasing
+// stock twice, not application logic here. Reversal (Task 3 checklist: "equal and opposite
+// stock and receipt reversal") goes through `StockPostingService.reverseMovements` for every
+// line at once — a receipt is never left half-reversed — and `reversedAt` marks the receipt
+// itself so it cannot be reversed a second time.
+model GoodsReceipt {
+  id            String    @id @default(uuid()) @db.Uuid
+  receiptNumber String    @unique @db.VarChar(40)
+  purchaseOrderId String  @db.Uuid
+  warehouseId   String    @db.Uuid
+  notes         String?   @db.VarChar(2000)
+  receivedById  String    @db.Uuid
+  reversedAt    DateTime? @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(6)
+
+  purchaseOrder PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  warehouse     Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  receivedBy    User               @relation("GoodsReceiptReceivedBy", fields: [receivedById], references: [id], onDelete: Restrict)
+  lines         GoodsReceiptLine[]
+
+  @@index([purchaseOrderId])
+  @@index([warehouseId])
+}
+
+model GoodsReceiptLine {
+  id                  String   @id @default(uuid()) @db.Uuid
+  goodsReceiptId      String   @db.Uuid
+  purchaseOrderLineId String   @db.Uuid
+  productId           String   @db.Uuid
+  receivedQuantity    Decimal  @db.Decimal(18, 4)
+  rejectedQuantity    Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(6)
+
+  goodsReceipt      GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderLine PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+  product           Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderLineId])
 }
