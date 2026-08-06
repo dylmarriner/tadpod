@@ -26,3 +26,11 @@ export const warehouseSchema = createWarehouseSchema.extend({
   updatedAt: z.string().datetime()
 });
 export type Warehouse = z.infer<typeof warehouseSchema>;
+
+export const listWarehousesQuerySchema = z.object({
+  search: z.string().trim().max(120).optional(),
+  status: warehouseStatusSchema.optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25)
+});
+export type ListWarehousesQuery = z.infer<typeof listWarehousesQuerySchema>;

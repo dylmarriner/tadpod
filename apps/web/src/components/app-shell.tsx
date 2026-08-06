@@ -12,7 +12,7 @@ const sections = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Sales', enabled: false },
   { label: 'Purchasing', enabled: false },
-  { label: 'Inventory', enabled: false },
+  { label: 'Inventory', href: '/inventory', permission: 'inventory.read' },
   { label: 'Customers', enabled: false },
   { label: 'Suppliers', enabled: false },
   { label: 'Reports', enabled: false },

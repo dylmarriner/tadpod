@@ -75,3 +75,12 @@ export const productSchema = createProductSchema.extend({
   suppliers: z.array(productSupplierSchema).readonly().optional()
 });
 export type Product = z.infer<typeof productSchema>;
+
+export const listProductsQuerySchema = z.object({
+  search: z.string().trim().max(120).optional(),
+  categoryId: z.string().uuid().optional(),
+  status: productStatusSchema.optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25)
+});
+export type ListProductsQuery = z.infer<typeof listProductsQuerySchema>;
