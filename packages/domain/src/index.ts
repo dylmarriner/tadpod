@@ -7,6 +7,17 @@ export {
   type SupplierBillForAccount
 } from './supplier-account.js';
 export {
+  PURCHASE_ORDER_STATUSES,
+  validateEditingTransition,
+  computeLineProjection,
+  deriveFulfillmentStatus,
+  computeLineTotalMinorUnits,
+  computeOrderTotalMinorUnits,
+  type PurchaseOrderStatus,
+  type PurchaseOrderLineQuantities,
+  type PurchaseOrderLineProjection
+} from './purchase-order.js';
+export {
   STOCK_MOVEMENT_TYPES,
   validateMovementDirection,
   computeStockOnHand,

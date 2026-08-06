@@ -13,6 +13,7 @@ const permissions = [
   ['sales.write', 'Create and update sales records'],
   ['purchasing.read', 'View purchasing records'],
   ['purchasing.write', 'Create and update purchasing records'],
+  ['purchasing.approve', 'Approve purchase orders above the approval threshold'],
   ['inventory.read', 'View inventory records'],
   ['inventory.write', 'Post inventory operations'],
   ['inventory.override-negative-stock', 'Post stock movements that would take stock on hand below zero'],
@@ -40,8 +41,8 @@ const rolePermissions: Record<string, string[]> = {
   purchasing: ['purchasing.read', 'purchasing.write', 'suppliers.read', 'suppliers.write', 'inventory.read'],
   warehouse: ['inventory.read', 'inventory.write', 'sales.read', 'purchasing.read'],
   'accounts-receivable': ['customers.read', 'customers.write', 'sales.read', 'reports.read'],
-  'accounts-payable': ['suppliers.read', 'suppliers.write', 'purchasing.read', 'reports.read'],
-  manager: ['sales.read', 'purchasing.read', 'inventory.read', 'customers.read', 'suppliers.read', 'reports.read', 'audit.read'],
+  'accounts-payable': ['suppliers.read', 'suppliers.write', 'purchasing.read', 'purchasing.approve', 'reports.read'],
+  manager: ['sales.read', 'purchasing.read', 'purchasing.approve', 'inventory.read', 'customers.read', 'suppliers.read', 'reports.read', 'audit.read'],
   'read-only': ['sales.read', 'purchasing.read', 'inventory.read', 'customers.read', 'suppliers.read', 'reports.read']
 };
 

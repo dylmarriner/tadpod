@@ -51,7 +51,7 @@ export type Supplier = z.infer<typeof supplierSchema>;
 
 export const listSuppliersQuerySchema = z.object({
   search: z.string().trim().max(120).optional(),
-  active: z.coerce.boolean().optional(),
+  active: z.enum(['true', 'false']).transform((value) => value === 'true').optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(25)
 });

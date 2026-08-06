@@ -11,7 +11,7 @@ type Brand = { displayName: string; primaryColour: string; accentColour: string 
 const sections = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Sales', enabled: false },
-  { label: 'Purchasing', enabled: false },
+  { label: 'Purchasing', href: '/purchasing/orders', permission: 'purchasing.read' },
   { label: 'Inventory', href: '/inventory', permission: 'inventory.read' },
   { label: 'Customers', enabled: false },
   { label: 'Suppliers', href: '/suppliers', permission: 'suppliers.read' },

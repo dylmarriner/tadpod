@@ -67,6 +67,8 @@ model User {
   attachments  Attachment[]     @relation("AttachmentUploader")
   stockMovements StockMovement[] @relation("StockMovementActor")
   stockCountsCreated StockCount[] @relation("StockCountCreatedBy")
+  purchaseOrdersCreated  PurchaseOrder[] @relation("PurchaseOrderCreatedBy")
+  purchaseOrdersApproved PurchaseOrder[] @relation("PurchaseOrderApprovedBy")
 
   @@index([status, email])
 }
@@ -184,6 +186,11 @@ model SystemSettings {
   defaultCurrency      String   @default("NZD") @db.Char(3)
   negativeStockEnabled Boolean  @default(false)
   timeZone             String   @default("Pacific/Auckland") @db.VarChar(80)
+  // Null means no value threshold is enforced: any actor with `purchasing.write` may confirm
+  // a purchase order directly. When set, an order whose total meets or exceeds this value
+  // must go through submit-for-approval/approve (`purchasing.approve`) instead of a direct
+  // confirm — see `PurchaseOrdersService.confirm`.
+  purchaseOrderApprovalThresholdMinorUnits BigInt? @db.BigInt
   updatedAt            DateTime @updatedAt @db.Timestamptz(6)
 }
 
@@ -279,6 +286,7 @@ model Supplier {
   productLinks     ProductSupplier[]
   preferredFor     Product[]         @relation("ProductPreferredSupplier")
   addresses        SupplierAddress[]
+  purchaseOrders   PurchaseOrder[]
 
   @@index([active])
 }
@@ -324,6 +332,7 @@ model Product {
   suppliers              ProductSupplier[]
   stockMovements         StockMovement[]
   stockCountLines        StockCountLine[]
+  purchaseOrderLines     PurchaseOrderLine[]
 
   @@index([categoryId])
   @@index([status])
@@ -452,5 +461,70 @@ model StockCountLine {
   product    Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@unique([stockCountId, productId])
+  @@index([productId])
+}
+
+// --- Phase 3 Task 2: purchase orders ---
+//
+// A confirmed purchase order is a commitment, not an amount owed — only posted supplier
+// bills (Task 4) create accounts payable. `PurchaseOrderLine` tracks ordered/received/
+// returned/billed quantities as plain counters updated transactionally by the services that
+// own each effect (Task 3 goods receipts increment `receivedQuantity`; Task 4 bills increment
+// `billedQuantity`); `PurchaseOrdersService` derives outstanding/unbilled on read rather than
+// storing them, so there is exactly one place each counter is ever written.
+enum PurchaseOrderStatus {
+  DRAFT
+  AWAITING_APPROVAL
+  CONFIRMED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  PARTIALLY_BILLED
+  BILLED
+  CANCELLED
+  CLOSED
+}
+
+model PurchaseOrder {
+  id           String              @id @default(uuid()) @db.Uuid
+  orderNumber  String              @unique @db.VarChar(40)
+  supplierId   String              @db.Uuid
+  status       PurchaseOrderStatus @default(DRAFT)
+  currency     String              @db.Char(3)
+  notes        String?             @db.VarChar(2000)
+  createdById  String              @db.Uuid
+  submittedAt  DateTime?           @db.Timestamptz(6)
+  approvedById String?             @db.Uuid
+  approvedAt   DateTime?           @db.Timestamptz(6)
+  confirmedAt  DateTime?           @db.Timestamptz(6)
+  cancelledAt  DateTime?           @db.Timestamptz(6)
+  closedAt     DateTime?           @db.Timestamptz(6)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(6)
+
+  supplier   Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy  User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy User?               @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  lines      PurchaseOrderLine[]
+
+  @@index([supplierId, status])
+  @@index([status])
+}
+
+model PurchaseOrderLine {
+  id                     String   @id @default(uuid()) @db.Uuid
+  purchaseOrderId        String   @db.Uuid
+  productId              String   @db.Uuid
+  unitCostMinorUnits     BigInt
+  orderedQuantity        Decimal  @db.Decimal(18, 4)
+  receivedQuantity       Decimal  @default(0) @db.Decimal(18, 4)
+  returnedQuantity       Decimal  @default(0) @db.Decimal(18, 4)
+  billedQuantity         Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt              DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime @updatedAt @db.Timestamptz(6)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseOrderId])
   @@index([productId])
 }
