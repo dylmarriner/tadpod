@@ -12,3 +12,7 @@ test-results/
 .superpowers/
 .worktrees/
 packages/database/prisma/dev.db
+
+# build artifacts
+.turbo/
+*.tsbuildinfo
