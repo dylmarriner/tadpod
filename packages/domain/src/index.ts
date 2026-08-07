@@ -91,6 +91,43 @@ export {
   type DeliveryMovementInput
 } from './delivery.js';
 
+export {
+  CUSTOMER_INVOICE_STATUSES,
+  deriveCustomerInvoiceDisplayStatus,
+  deriveCustomerInvoiceStatus,
+  computeCustomerInvoiceOutstandingMinorUnits,
+  computeUninvoicedQuantity,
+  validateInvoiceLineQuantity,
+  type CustomerInvoiceStatus,
+  type CustomerInvoiceDisplayStatus,
+  type InvoiceableLine,
+  type InvoiceLineDraft
+} from './customer-invoice.js';
+export {
+  planPaymentAllocation,
+  planCreditApplication,
+  validateManualAllocation,
+  type OpenInvoiceForAllocation,
+  type PaymentAllocationLine,
+  type PaymentAllocationPlan,
+  type ManualAllocationInput
+} from './customer-payment.js';
+export {
+  computeCustomerAccount,
+  netAccountsReceivable,
+  computeStatementBalance,
+  type CustomerInvoiceForAccount,
+  type CustomerAccountProjection
+} from './customer-account.js';
+export {
+  INSTALLMENT_FREQUENCIES,
+  validateInstallmentSchedule,
+  generateRecurringSchedule,
+  generateDepositAndFinalSchedule,
+  type InstallmentFrequency,
+  type InstallmentScheduleLineInput
+} from './installments.js';
+
 export type Brand<T, Name extends string> = T & { readonly __brand: Name };
 export type UserId = Brand<string, 'UserId'>;
 export type RoleId = Brand<string, 'RoleId'>;

@@ -52,31 +52,39 @@ enum StockMovementType {
 }
 
 model User {
-  id           String           @id @default(uuid()) @db.Uuid
-  email        String           @unique @db.VarChar(254)
-  displayName  String           @db.VarChar(120)
-  passwordHash String           @db.Text
-  status       UserStatus       @default(ACTIVE)
-  version      Int              @default(1)
-  lastLoginAt  DateTime?        @db.Timestamptz(6)
-  createdAt    DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime         @updatedAt @db.Timestamptz(6)
-  roles        UserRole[]
-  sessions     RefreshSession[]
-  auditLogs    AuditLog[]
-  attachments  Attachment[]     @relation("AttachmentUploader")
-  stockMovements StockMovement[] @relation("StockMovementActor")
-  stockCountsCreated StockCount[] @relation("StockCountCreatedBy")
-  purchaseOrdersCreated  PurchaseOrder[] @relation("PurchaseOrderCreatedBy")
-  purchaseOrdersApproved PurchaseOrder[] @relation("PurchaseOrderApprovedBy")
-  goodsReceiptsReceived  GoodsReceipt[]  @relation("GoodsReceiptReceivedBy")
-  salesOrdersCreated     SalesOrder[]    @relation("SalesOrderCreatedBy")
-  salesOrdersConfirmed   SalesOrder[]    @relation("SalesOrderConfirmedBy")
-  stockReservationsCreated StockReservation[] @relation("StockReservationCreatedBy")
-  deliveriesCreated      Delivery[]      @relation("DeliveryCreatedBy")
-  deliveriesPosted       Delivery[]      @relation("DeliveryPostedBy")
-  backordersCreated      Backorder[]     @relation("BackorderCreatedBy")
-  backorderAllocationsCreated BackorderAllocation[] @relation("BackorderAllocationCreatedBy")
+  id                                String                      @id @default(uuid()) @db.Uuid
+  email                             String                      @unique @db.VarChar(254)
+  displayName                       String                      @db.VarChar(120)
+  passwordHash                      String                      @db.Text
+  status                            UserStatus                  @default(ACTIVE)
+  version                           Int                         @default(1)
+  lastLoginAt                       DateTime?                   @db.Timestamptz(6)
+  createdAt                         DateTime                    @default(now()) @db.Timestamptz(6)
+  updatedAt                         DateTime                    @updatedAt @db.Timestamptz(6)
+  roles                             UserRole[]
+  sessions                          RefreshSession[]
+  auditLogs                         AuditLog[]
+  attachments                       Attachment[]                @relation("AttachmentUploader")
+  stockMovements                    StockMovement[]             @relation("StockMovementActor")
+  stockCountsCreated                StockCount[]                @relation("StockCountCreatedBy")
+  purchaseOrdersCreated             PurchaseOrder[]             @relation("PurchaseOrderCreatedBy")
+  purchaseOrdersApproved            PurchaseOrder[]             @relation("PurchaseOrderApprovedBy")
+  goodsReceiptsReceived             GoodsReceipt[]              @relation("GoodsReceiptReceivedBy")
+  salesOrdersCreated                SalesOrder[]                @relation("SalesOrderCreatedBy")
+  salesOrdersConfirmed              SalesOrder[]                @relation("SalesOrderConfirmedBy")
+  stockReservationsCreated          StockReservation[]          @relation("StockReservationCreatedBy")
+  deliveriesCreated                 Delivery[]                  @relation("DeliveryCreatedBy")
+  deliveriesPosted                  Delivery[]                  @relation("DeliveryPostedBy")
+  backordersCreated                 Backorder[]                 @relation("BackorderCreatedBy")
+  backorderAllocationsCreated       BackorderAllocation[]       @relation("BackorderAllocationCreatedBy")
+  customerInvoicesCreated           CustomerInvoice[]           @relation("CustomerInvoiceCreatedBy")
+  customerInvoicesVoided            CustomerInvoice[]           @relation("CustomerInvoiceVoidedBy")
+  customerPaymentsCreated           CustomerPayment[]           @relation("CustomerPaymentCreatedBy")
+  customerPaymentAllocationsCreated CustomerPaymentAllocation[] @relation("CustomerPaymentAllocationCreatedBy")
+  customerCreditsCreated            CustomerCredit[]            @relation("CustomerCreditCreatedBy")
+  customerCreditApplicationsCreated CustomerCreditApplication[] @relation("CustomerCreditApplicationCreatedBy")
+  customerRefundsCreated            CustomerRefund[]            @relation("CustomerRefundCreatedBy")
+  installmentPlansCreated           InstallmentPlan[]           @relation("InstallmentPlanCreatedBy")
 
   @@index([status, email])
 }
@@ -190,16 +198,16 @@ model BrandSettings {
 }
 
 model SystemSettings {
-  singletonKey         String   @id @default("default") @db.VarChar(20)
-  defaultCurrency      String   @default("NZD") @db.Char(3)
-  negativeStockEnabled Boolean  @default(false)
-  timeZone             String   @default("Pacific/Auckland") @db.VarChar(80)
+  singletonKey                             String   @id @default("default") @db.VarChar(20)
+  defaultCurrency                          String   @default("NZD") @db.Char(3)
+  negativeStockEnabled                     Boolean  @default(false)
+  timeZone                                 String   @default("Pacific/Auckland") @db.VarChar(80)
   // Null means no value threshold is enforced: any actor with `purchasing.write` may confirm
   // a purchase order directly. When set, an order whose total meets or exceeds this value
   // must go through submit-for-approval/approve (`purchasing.approve`) instead of a direct
   // confirm — see `PurchaseOrdersService.confirm`.
-  purchaseOrderApprovalThresholdMinorUnits BigInt? @db.BigInt
-  updatedAt            DateTime @updatedAt @db.Timestamptz(6)
+  purchaseOrderApprovalThresholdMinorUnits BigInt?  @db.BigInt
+  updatedAt                                DateTime @updatedAt @db.Timestamptz(6)
 }
 
 model TaxRate {
@@ -318,26 +326,26 @@ model SupplierAddress {
 }
 
 model Product {
-  id                     String            @id @default(uuid()) @db.Uuid
-  sku                    String            @unique @db.VarChar(64)
-  barcode                String?           @unique @db.VarChar(64)
-  name                   String            @db.VarChar(200)
-  description            String?           @db.Text
-  categoryId             String?           @db.Uuid
-  unitOfMeasure          String            @db.VarChar(20)
-  salesPriceMinorUnits   BigInt            @default(0)
-  purchaseCostMinorUnits BigInt            @default(0)
-  taxRateId              String?           @db.Uuid
-  reorderLevel           Decimal           @default(0) @db.Decimal(18, 4)
-  reorderQuantity        Decimal           @default(0) @db.Decimal(18, 4)
-  leadTimeDays           Int               @default(0)
-  preferredSupplierId    String?           @db.Uuid
-  status                 ProductStatus     @default(ACTIVE)
-  createdAt              DateTime          @default(now()) @db.Timestamptz(6)
-  updatedAt              DateTime          @updatedAt @db.Timestamptz(6)
-  category               ProductCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  taxRate                TaxRate?          @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
-  preferredSupplier      Supplier?         @relation("ProductPreferredSupplier", fields: [preferredSupplierId], references: [id], onDelete: SetNull)
+  id                     String                @id @default(uuid()) @db.Uuid
+  sku                    String                @unique @db.VarChar(64)
+  barcode                String?               @unique @db.VarChar(64)
+  name                   String                @db.VarChar(200)
+  description            String?               @db.Text
+  categoryId             String?               @db.Uuid
+  unitOfMeasure          String                @db.VarChar(20)
+  salesPriceMinorUnits   BigInt                @default(0)
+  purchaseCostMinorUnits BigInt                @default(0)
+  taxRateId              String?               @db.Uuid
+  reorderLevel           Decimal               @default(0) @db.Decimal(18, 4)
+  reorderQuantity        Decimal               @default(0) @db.Decimal(18, 4)
+  leadTimeDays           Int                   @default(0)
+  preferredSupplierId    String?               @db.Uuid
+  status                 ProductStatus         @default(ACTIVE)
+  createdAt              DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime              @updatedAt @db.Timestamptz(6)
+  category               ProductCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  taxRate                TaxRate?              @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
+  preferredSupplier      Supplier?             @relation("ProductPreferredSupplier", fields: [preferredSupplierId], references: [id], onDelete: SetNull)
   suppliers              ProductSupplier[]
   stockMovements         StockMovement[]
   stockCountLines        StockCountLine[]
@@ -347,6 +355,7 @@ model Product {
   stockReservations      StockReservation[]
   deliveryLines          DeliveryLine[]
   backorderLines         BackorderLine[]
+  customerInvoiceLines   CustomerInvoiceLine[]
 
   @@index([categoryId])
   @@index([status])
@@ -371,22 +380,22 @@ model ProductSupplier {
 }
 
 model Warehouse {
-  id           String          @id @default(uuid()) @db.Uuid
-  code         String          @unique @db.VarChar(20)
-  name         String          @unique @db.VarChar(160)
-  addressLine1 String?         @db.VarChar(200)
-  addressLine2 String?         @db.VarChar(200)
-  city         String?         @db.VarChar(120)
-  region       String?         @db.VarChar(120)
-  postalCode   String?         @db.VarChar(20)
-  country      String?         @db.VarChar(120)
-  status       WarehouseStatus @default(ACTIVE)
-  isDefault    Boolean         @default(false)
-  createdAt    DateTime        @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime        @updatedAt @db.Timestamptz(6)
-  stockMovements StockMovement[]
-  stockCounts    StockCount[]
-  goodsReceipts  GoodsReceipt[]
+  id                String             @id @default(uuid()) @db.Uuid
+  code              String             @unique @db.VarChar(20)
+  name              String             @unique @db.VarChar(160)
+  addressLine1      String?            @db.VarChar(200)
+  addressLine2      String?            @db.VarChar(200)
+  city              String?            @db.VarChar(120)
+  region            String?            @db.VarChar(120)
+  postalCode        String?            @db.VarChar(20)
+  country           String?            @db.VarChar(120)
+  status            WarehouseStatus    @default(ACTIVE)
+  isDefault         Boolean            @default(false)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(6)
+  stockMovements    StockMovement[]
+  stockCounts       StockCount[]
+  goodsReceipts     GoodsReceipt[]
   salesOrders       SalesOrder[]
   stockReservations StockReservation[]
   deliveries        Delivery[]
@@ -426,11 +435,11 @@ model StockMovement {
   notes          String?           @db.VarChar(2000)
   createdAt      DateTime          @default(now()) @db.Timestamptz(6)
 
-  product     Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
-  warehouse   Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
-  actor       User?           @relation("StockMovementActor", fields: [actorId], references: [id], onDelete: SetNull)
-  reversalOf  StockMovement?  @relation("StockMovementReversal", fields: [reversalOfId], references: [id], onDelete: Restrict)
-  reversedBy  StockMovement[] @relation("StockMovementReversal")
+  product    Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  warehouse  Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  actor      User?           @relation("StockMovementActor", fields: [actorId], references: [id], onDelete: SetNull)
+  reversalOf StockMovement?  @relation("StockMovementReversal", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversedBy StockMovement[] @relation("StockMovementReversal")
 
   @@unique([sourceType, sourceId, sourceLineId])
   @@index([productId, warehouseId])
@@ -520,10 +529,10 @@ model PurchaseOrder {
   createdAt    DateTime            @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime            @updatedAt @db.Timestamptz(6)
 
-  supplier   Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-  createdBy  User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  approvedBy User?               @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
-  lines      PurchaseOrderLine[]
+  supplier      Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy     User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy    User?               @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  lines         PurchaseOrderLine[]
   goodsReceipts GoodsReceipt[]
   backorders    Backorder[]
 
@@ -532,20 +541,20 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderLine {
-  id                     String   @id @default(uuid()) @db.Uuid
-  purchaseOrderId        String   @db.Uuid
-  productId              String   @db.Uuid
-  unitCostMinorUnits     BigInt
-  orderedQuantity        Decimal  @db.Decimal(18, 4)
-  receivedQuantity       Decimal  @default(0) @db.Decimal(18, 4)
-  returnedQuantity       Decimal  @default(0) @db.Decimal(18, 4)
-  billedQuantity         Decimal  @default(0) @db.Decimal(18, 4)
-  createdAt              DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt              DateTime @updatedAt @db.Timestamptz(6)
+  id                 String   @id @default(uuid()) @db.Uuid
+  purchaseOrderId    String   @db.Uuid
+  productId          String   @db.Uuid
+  unitCostMinorUnits BigInt
+  orderedQuantity    Decimal  @db.Decimal(18, 4)
+  receivedQuantity   Decimal  @default(0) @db.Decimal(18, 4)
+  returnedQuantity   Decimal  @default(0) @db.Decimal(18, 4)
+  billedQuantity     Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
 
-  purchaseOrder PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  product       Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
-  receiptLines  GoodsReceiptLine[]
+  purchaseOrder  PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product        Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  receiptLines   GoodsReceiptLine[]
   backorderLines BackorderLine[]
 
   @@index([purchaseOrderId])
@@ -563,15 +572,15 @@ model PurchaseOrderLine {
 // line at once — a receipt is never left half-reversed — and `reversedAt` marks the receipt
 // itself so it cannot be reversed a second time.
 model GoodsReceipt {
-  id            String    @id @default(uuid()) @db.Uuid
-  receiptNumber String    @unique @db.VarChar(40)
-  purchaseOrderId String  @db.Uuid
-  warehouseId   String    @db.Uuid
-  notes         String?   @db.VarChar(2000)
-  receivedById  String    @db.Uuid
-  reversedAt    DateTime? @db.Timestamptz(6)
-  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime  @updatedAt @db.Timestamptz(6)
+  id              String    @id @default(uuid()) @db.Uuid
+  receiptNumber   String    @unique @db.VarChar(40)
+  purchaseOrderId String    @db.Uuid
+  warehouseId     String    @db.Uuid
+  notes           String?   @db.VarChar(2000)
+  receivedById    String    @db.Uuid
+  reversedAt      DateTime? @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
 
   purchaseOrder PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
   warehouse     Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
@@ -665,25 +674,29 @@ enum BackorderStatus {
 }
 
 model Customer {
-  id                    String            @id @default(uuid()) @db.Uuid
-  code                  String            @unique @db.VarChar(40)
-  name                  String            @db.VarChar(160)
-  legalName             String?           @db.VarChar(200)
-  taxNumber             String?           @db.VarChar(40)
-  currency              String            @default("NZD") @db.Char(3)
-  paymentTermsDays      Int               @default(20)
-  creditLimitMinorUnits BigInt            @default(0)
-  contactName           String?           @db.VarChar(160)
-  contactEmail          String?           @db.VarChar(254)
-  contactPhone          String?           @db.VarChar(40)
-  notes                 String?           @db.VarChar(2000)
-  active                Boolean           @default(true)
-  createdAt             DateTime          @default(now()) @db.Timestamptz(6)
-  updatedAt             DateTime          @updatedAt @db.Timestamptz(6)
+  id                    String   @id @default(uuid()) @db.Uuid
+  code                  String   @unique @db.VarChar(40)
+  name                  String   @db.VarChar(160)
+  legalName             String?  @db.VarChar(200)
+  taxNumber             String?  @db.VarChar(40)
+  currency              String   @default("NZD") @db.Char(3)
+  paymentTermsDays      Int      @default(20)
+  creditLimitMinorUnits BigInt   @default(0)
+  contactName           String?  @db.VarChar(160)
+  contactEmail          String?  @db.VarChar(254)
+  contactPhone          String?  @db.VarChar(40)
+  notes                 String?  @db.VarChar(2000)
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @db.Timestamptz(6)
 
   addresses   CustomerAddress[]
   salesOrders SalesOrder[]
   backorders  Backorder[]
+  invoices    CustomerInvoice[]
+  payments    CustomerPayment[]
+  credits     CustomerCredit[]
+  refunds     CustomerRefund[]
 
   @@index([active])
   @@index([name])
@@ -726,14 +739,15 @@ model SalesOrder {
   createdAt         DateTime                  @default(now()) @db.Timestamptz(6)
   updatedAt         DateTime                  @updatedAt @db.Timestamptz(6)
 
-  customer     Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  warehouse    Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
-  createdBy    User              @relation("SalesOrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  confirmedBy  User?             @relation("SalesOrderConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  customer     Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  warehouse    Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  createdBy    User               @relation("SalesOrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  confirmedBy  User?              @relation("SalesOrderConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
   lines        SalesOrderLine[]
   reservations StockReservation[]
   deliveries   Delivery[]
   backorders   Backorder[]
+  invoices     CustomerInvoice[]
 
   @@index([customerId, status])
   @@index([status])
@@ -750,25 +764,26 @@ model SalesOrder {
 /// database-level guarantee that delivered + cancelled + reserved + backordered can never
 /// exceed ordered, no matter which service writes last.
 model SalesOrderLine {
-  id                    String   @id @default(uuid()) @db.Uuid
-  salesOrderId          String   @db.Uuid
-  productId             String   @db.Uuid
-  unitPriceMinorUnits   BigInt
-  discountPercentBasis  Int      @default(0)
-  orderedQuantity       Decimal  @db.Decimal(18, 4)
-  reservedQuantity      Decimal  @default(0) @db.Decimal(18, 4)
-  deliveredQuantity     Decimal  @default(0) @db.Decimal(18, 4)
-  cancelledQuantity     Decimal  @default(0) @db.Decimal(18, 4)
-  backorderedQuantity   Decimal  @default(0) @db.Decimal(18, 4)
-  invoicedQuantity      Decimal  @default(0) @db.Decimal(18, 4)
-  createdAt             DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt             DateTime @updatedAt @db.Timestamptz(6)
+  id                   String   @id @default(uuid()) @db.Uuid
+  salesOrderId         String   @db.Uuid
+  productId            String   @db.Uuid
+  unitPriceMinorUnits  BigInt
+  discountPercentBasis Int      @default(0)
+  orderedQuantity      Decimal  @db.Decimal(18, 4)
+  reservedQuantity     Decimal  @default(0) @db.Decimal(18, 4)
+  deliveredQuantity    Decimal  @default(0) @db.Decimal(18, 4)
+  cancelledQuantity    Decimal  @default(0) @db.Decimal(18, 4)
+  backorderedQuantity  Decimal  @default(0) @db.Decimal(18, 4)
+  invoicedQuantity     Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt            DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(6)
 
-  salesOrder    SalesOrder         @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-  product       Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
-  reservations  StockReservation[]
-  deliveryLines DeliveryLine[]
+  salesOrder     SalesOrder            @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product        Product               @relation(fields: [productId], references: [id], onDelete: Restrict)
+  reservations   StockReservation[]
+  deliveryLines  DeliveryLine[]
   backorderLines BackorderLine[]
+  invoiceLines   CustomerInvoiceLine[]
 
   @@index([salesOrderId])
   @@index([productId])
@@ -944,4 +959,225 @@ model BackorderAllocation {
 
   @@unique([backorderLineId, sourceLineId])
   @@index([sourceType, sourceId])
+}
+
+/// A posted invoice, credit, and refund are all immutable financial records (per the
+/// project's non-negotiable rules): corrections happen through `CustomerCredit` and
+/// `CustomerRefund`, or by voiding the invoice, never by editing a posted amount.
+enum CustomerInvoiceStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  VOIDED
+  CREDITED
+}
+
+enum InstallmentFrequency {
+  WEEKLY
+  FORTNIGHTLY
+  MONTHLY
+  CUSTOM
+}
+
+/// An invoice bills delivered-but-not-yet-invoiced quantity off one sales order's lines
+/// (`SalesOrderLine.deliveredQuantity - invoicedQuantity`, Phase 4's `uninvoicedQuantity`
+/// projection). `status` only ever holds the five persisted values above; "Overdue" from the
+/// roadmap's status list is derived at read time from `status` and `dueDate` — see
+/// `deriveCustomerInvoiceDisplayStatus` in `packages/domain` — so nothing has to sweep the
+/// table on a schedule to flip a stored flag.
+model CustomerInvoice {
+  id            String                @id @default(uuid()) @db.Uuid
+  invoiceNumber String                @unique @db.VarChar(40)
+  customerId    String                @db.Uuid
+  salesOrderId  String                @db.Uuid
+  status        CustomerInvoiceStatus @default(UNPAID)
+  currency      String                @db.Char(3)
+  issueDate     DateTime              @db.Timestamptz(6)
+  dueDate       DateTime              @db.Timestamptz(6)
+  notes         String?               @db.VarChar(2000)
+  createdById   String                @db.Uuid
+  voidedById    String?               @db.Uuid
+  voidedAt      DateTime?             @db.Timestamptz(6)
+  createdAt     DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime              @updatedAt @db.Timestamptz(6)
+
+  customer           Customer                    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  salesOrder         SalesOrder                  @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+  createdBy          User                        @relation("CustomerInvoiceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  voidedBy           User?                       @relation("CustomerInvoiceVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  lines              CustomerInvoiceLine[]
+  paymentAllocations CustomerPaymentAllocation[]
+  creditApplications CustomerCreditApplication[]
+  installmentPlan    InstallmentPlan?
+
+  @@index([customerId, status])
+  @@index([status, dueDate])
+  @@index([salesOrderId])
+}
+
+/// `(customerInvoiceId, salesOrderLineId)` is unique so the same delivered quantity on a
+/// sales order line can never be invoiced twice, no matter how many separate invoices are
+/// raised against the order over time.
+model CustomerInvoiceLine {
+  id                   String   @id @default(uuid()) @db.Uuid
+  customerInvoiceId    String   @db.Uuid
+  salesOrderLineId     String   @db.Uuid
+  productId            String   @db.Uuid
+  unitPriceMinorUnits  BigInt
+  discountPercentBasis Int      @default(0)
+  quantity             Decimal  @db.Decimal(18, 4)
+  createdAt            DateTime @default(now()) @db.Timestamptz(6)
+
+  customerInvoice CustomerInvoice @relation(fields: [customerInvoiceId], references: [id], onDelete: Cascade)
+  salesOrderLine  SalesOrderLine  @relation(fields: [salesOrderLineId], references: [id], onDelete: Restrict)
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([customerInvoiceId, salesOrderLineId])
+  @@index([customerInvoiceId])
+  @@index([salesOrderLineId])
+}
+
+/// A payment is recorded once, in full, against the customer account — never pre-split across
+/// invoices by the caller. `CustomerPaymentsService` does the splitting via
+/// `CustomerPaymentAllocation` rows, oldest-invoice-first, exactly like the roadmap's
+/// "Customer Payment Posting" workflow. `idempotencyKey` is the duplicate-payment guard: the
+/// same payment request retried returns the original payment rather than posting twice.
+model CustomerPayment {
+  id               String    @id @default(uuid()) @db.Uuid
+  paymentNumber    String    @unique @db.VarChar(40)
+  customerId       String    @db.Uuid
+  amountMinorUnits BigInt
+  currency         String    @db.Char(3)
+  method           String    @db.VarChar(60)
+  reference        String?   @db.VarChar(120)
+  receivedAt       DateTime  @db.Timestamptz(6)
+  notes            String?   @db.VarChar(2000)
+  createdById      String    @db.Uuid
+  idempotencyKey   String    @unique @db.VarChar(200)
+  reversedAt       DateTime? @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  customer    Customer                    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdBy   User                        @relation("CustomerPaymentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  allocations CustomerPaymentAllocation[]
+  credits     CustomerCredit[]
+
+  @@index([customerId, receivedAt])
+}
+
+/// One payment's claim against one invoice. A reversal never deletes the row — it stamps
+/// `reversedAt` and the reversing write also reduces the invoice's paid total in the same
+/// transaction, so the full history of every allocation and reversal is preserved.
+model CustomerPaymentAllocation {
+  id                String    @id @default(uuid()) @db.Uuid
+  customerPaymentId String    @db.Uuid
+  customerInvoiceId String    @db.Uuid
+  amountMinorUnits  BigInt
+  createdById       String    @db.Uuid
+  reversedAt        DateTime? @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+
+  customerPayment CustomerPayment @relation(fields: [customerPaymentId], references: [id], onDelete: Cascade)
+  customerInvoice CustomerInvoice @relation(fields: [customerInvoiceId], references: [id], onDelete: Restrict)
+  createdBy       User            @relation("CustomerPaymentAllocationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([customerPaymentId])
+  @@index([customerInvoiceId])
+}
+
+/// Unapplied value on a customer's account — raised automatically when a payment overpays its
+/// invoices (`sourcePaymentId` set), or manually (e.g. a goodwill credit). `remainingMinorUnits`
+/// is the live balance; `amountMinorUnits` is the original grant and never changes once posted.
+model CustomerCredit {
+  id                  String   @id @default(uuid()) @db.Uuid
+  creditNumber        String   @unique @db.VarChar(40)
+  customerId          String   @db.Uuid
+  sourceType          String   @db.VarChar(30)
+  sourcePaymentId     String?  @db.Uuid
+  amountMinorUnits    BigInt
+  remainingMinorUnits BigInt
+  currency            String   @db.Char(3)
+  notes               String?  @db.VarChar(2000)
+  createdById         String   @db.Uuid
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+
+  customer      Customer                    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  sourcePayment CustomerPayment?            @relation(fields: [sourcePaymentId], references: [id], onDelete: SetNull)
+  createdBy     User                        @relation("CustomerCreditCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  applications  CustomerCreditApplication[]
+  refunds       CustomerRefund[]
+
+  @@index([customerId])
+}
+
+/// One credit's application against one invoice — mirrors `CustomerPaymentAllocation`, with
+/// the same reversal-by-stamp discipline.
+model CustomerCreditApplication {
+  id                String    @id @default(uuid()) @db.Uuid
+  customerCreditId  String    @db.Uuid
+  customerInvoiceId String    @db.Uuid
+  amountMinorUnits  BigInt
+  createdById       String    @db.Uuid
+  reversedAt        DateTime? @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+
+  customerCredit  CustomerCredit  @relation(fields: [customerCreditId], references: [id], onDelete: Cascade)
+  customerInvoice CustomerInvoice @relation(fields: [customerInvoiceId], references: [id], onDelete: Restrict)
+  createdBy       User            @relation("CustomerCreditApplicationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([customerCreditId])
+  @@index([customerInvoiceId])
+}
+
+/// Paying real money back out for unapplied credit. Always draws down a `CustomerCredit`
+/// (`customerCreditId`), never issued directly against an invoice — a refund is the credit
+/// leaving the account, not a second way to touch invoice balances.
+model CustomerRefund {
+  id               String   @id @default(uuid()) @db.Uuid
+  refundNumber     String   @unique @db.VarChar(40)
+  customerId       String   @db.Uuid
+  customerCreditId String   @db.Uuid
+  amountMinorUnits BigInt
+  currency         String   @db.Char(3)
+  method           String   @db.VarChar(60)
+  reference        String?  @db.VarChar(120)
+  notes            String?  @db.VarChar(2000)
+  createdById      String   @db.Uuid
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+
+  customer       Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customerCredit CustomerCredit @relation(fields: [customerCreditId], references: [id], onDelete: Restrict)
+  createdBy      User           @relation("CustomerRefundCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([customerId])
+  @@index([customerCreditId])
+}
+
+/// A deposit/final or recurring schedule for one invoice. Unscheduled partial payments remain
+/// allowed regardless — `InstallmentScheduleLine.paidAmountMinorUnits` is informational,
+/// tracking progress against the plan; it is not itself a payable record and does not gate
+/// `CustomerPaymentsService` from allocating a payment to this invoice at any time.
+model InstallmentPlan {
+  id                String               @id @default(uuid()) @db.Uuid
+  customerInvoiceId String               @unique @db.Uuid
+  frequency         InstallmentFrequency
+  createdById       String               @db.Uuid
+  createdAt         DateTime             @default(now()) @db.Timestamptz(6)
+
+  customerInvoice CustomerInvoice           @relation(fields: [customerInvoiceId], references: [id], onDelete: Cascade)
+  createdBy       User                      @relation("InstallmentPlanCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  lines           InstallmentScheduleLine[]
+}
+
+model InstallmentScheduleLine {
+  id                   String   @id @default(uuid()) @db.Uuid
+  installmentPlanId    String   @db.Uuid
+  dueDate              DateTime @db.Timestamptz(6)
+  amountMinorUnits     BigInt
+  paidAmountMinorUnits BigInt   @default(0)
+  createdAt            DateTime @default(now()) @db.Timestamptz(6)
+
+  installmentPlan InstallmentPlan @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
+
+  @@index([installmentPlanId])
 }
