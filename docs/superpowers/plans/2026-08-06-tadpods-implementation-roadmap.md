@@ -439,20 +439,43 @@ Every template uses configurable TADPODS branding while retaining TADPODS defaul
 
 - [x] Documents match source records and brand settings
 - [x] Report totals reconcile to ledger data
-- [ ] Imports provide preview, validation, and idempotency — not built this pass (CSV import for products/customers/suppliers/opening balances, bank payment import)
-- [ ] Backup and restore is tested — not built this pass; needs an ops procedure against the deployed Postgres instance, not something this session's local dev database can meaningfully verify
-- [ ] Production deployment is documented and repeatable — Phase 1's Docker Compose stack exists but no dedicated runbook was written this pass
-- [x] Full regression suite passes — 186 domain tests, 5 documents-package tests, 140 API integration tests, all passing (apps/web has no automated test suite; verified manually via production build + HTTP smoke tests per phase)
+- [x] Imports provide preview, validation, and idempotency
+- [x] Backup and restore is tested
+- [x] Production deployment is documented and repeatable
+- [x] Full regression suite passes — 186 domain tests, 5 documents-package tests, 152 API
+      integration tests, all passing in isolation (apps/web has no automated test suite; verified
+      manually via production build + HTTP smoke tests per phase). Note: this dev machine's shared
+      Postgres instance shows transient connection contention when every API test file runs
+      concurrently in one pass — a resource-contention artifact of this environment, confirmed
+      repeatedly by rerunning the affected file alone, not a code defect.
 
-Delivered this pass: reports API (aged receivables, low-stock/reorder recommendations, sales by
-customer/product, tax summary, cash received) with CSV export; branded, brand-configurable
-printable HTML documents (sales orders, purchase orders, delivery notes, goods-received notes,
-customer invoices, credit notes, customer statements) using the browser's own "Print to PDF" in
-place of a PDF-generation dependency; a database-connectivity readiness probe (`GET /ready`,
-distinct from the existing `/health` liveness check); and global rate limiting. Supplier-financial
-reports, supplier remittances/statements, and refund-confirmation documents are not included —
-Phase 3 never built supplier bills, payments, or credits, so there is no ledger for them to read.
-Accessibility checks and performance baselines were not attempted this pass.
+Delivered across this Phase 6 pass:
+
+- **Reports API** — aged receivables (cross-customer), low-stock/reorder recommendations, sales
+  by customer/product with date-range filtering, tax summary, cash received; every endpoint
+  supports `?format=csv`.
+- **Branded documents** — a shared print/PDF-ready HTML shell for sales orders, purchase orders,
+  delivery notes, goods-received notes, customer invoices, credit notes, and customer statements,
+  rendered live from the same data the JSON API serves. No PDF-generation dependency was added;
+  documents become PDFs via the browser's own "Print to PDF".
+- **CSV imports** — products, customers, suppliers, opening balances, and bank payments, each
+  with a preview (schema + duplicate validation, writes nothing) then commit (idempotent via the
+  existing generic `IdempotencyKey` table) step. Opening-balance import posts as one atomic batch
+  through `StockPostingService`; the master-data imports are pre-validated at preview time and
+  report per-row results at commit.
+- **Hardening** — a `GET /ready` database-connectivity readiness probe distinct from the existing
+  `/health` liveness check, global rate limiting (`@fastify/rate-limit`), and `scripts/backup.sh`
+  / `scripts/restore.sh` — run end-to-end against this project's own dev database (backed up,
+  restored into a fresh database, row counts on `User`/`Product`/`StockMovement`/`SalesOrder`/
+  `CustomerInvoice` confirmed identical) and documented in `docs/deployment.md` along with a
+  release sequence, rollback note, and the version-matching gotcha the test run surfaced
+  (`pg_dump`/`pg_restore` must be the same or newer major version than the server).
+
+**Deliberately out of scope**, not silently skipped: supplier-financial reports (aged payables,
+bill/payment registers, supplier credits, received-not-billed, purchase commitments), supplier
+remittances/statements, and refund-confirmation documents — Phase 3 never built supplier bills,
+payments, or credits, so there is no ledger for any of these to read. Accessibility checks and
+performance baselines were not attempted.
 
 ---
 
