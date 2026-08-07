@@ -1,7 +1,7 @@
 import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
 import { PurchaseOrderActions } from '../../../../../components/purchase-order-forms';
 import { serverApi } from '../../../../../lib/server-api';
-import { ApiError } from '../../../../../lib/api';
+import { apiUrl, ApiError } from '../../../../../lib/api';
 
 type Line = {
   id: string; product: { id: string; sku: string; name: string }; unitCost: string; orderedQuantity: string;
@@ -40,7 +40,10 @@ export default async function PurchaseOrderDetailPage({ params }: { params: Prom
         <h1>{order.orderNumber}</h1>
         <p>{order.supplier.code} — {order.supplier.name} · {order.currency} · Total {order.totalAmount}</p>
       </div>
-      <Badge tone="info">{order.status.replaceAll('_', ' ')}</Badge>
+      <div className="inline">
+        <a href={`${apiUrl}/documents/purchase-orders/${order.id}`} target="_blank" rel="noreferrer">Print</a>
+        <Badge tone="info">{order.status.replaceAll('_', ' ')}</Badge>
+      </div>
     </header>
     <div className="grid grid--2">
       <Card title="Actions">

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
 import { ApplyCreditButton, CreateRefundForm } from '../../../../../components/customer-invoice-forms';
 import { serverApi } from '../../../../../lib/server-api';
-import { ApiError } from '../../../../../lib/api';
+import { apiUrl, ApiError } from '../../../../../lib/api';
 
 type Application = { id: string; customerInvoiceId: string; invoiceNumber: string; amount: string; reversedAt: string | null };
 type Credit = {
@@ -32,7 +32,10 @@ export default async function CustomerCreditDetailPage({ params }: { params: Pro
         <h1>{credit.creditNumber}</h1>
         <p>{credit.customer.code} — {credit.customer.name} · {credit.amount} {credit.currency}</p>
       </div>
-      <Badge tone="info">{credit.sourceType}</Badge>
+      <div className="inline">
+        <a href={`${apiUrl}/documents/customer-credits/${credit.id}`} target="_blank" rel="noreferrer">Print</a>
+        <Badge tone="info">{credit.sourceType}</Badge>
+      </div>
     </header>
     <div className="grid grid--2">
       <Card title="Summary">

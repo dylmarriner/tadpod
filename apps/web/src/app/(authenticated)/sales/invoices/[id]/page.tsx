@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
 import { VoidInvoiceButton } from '../../../../../components/customer-invoice-forms';
 import { serverApi } from '../../../../../lib/server-api';
-import { ApiError } from '../../../../../lib/api';
+import { apiUrl, ApiError } from '../../../../../lib/api';
 
 type Line = { id: string; product: { sku: string; name: string }; unitPrice: string; quantity: string; lineTotal: string };
 type Invoice = {
@@ -46,7 +46,10 @@ export default async function CustomerInvoiceDetailPage({ params }: { params: Pr
         <h1>{invoice.invoiceNumber}</h1>
         <p>{invoice.customer.code} — {invoice.customer.name} · Order <Link href={`/sales/orders/${invoice.salesOrder.id}`}>{invoice.salesOrder.orderNumber}</Link></p>
       </div>
-      <Badge tone={statusTone(invoice.displayStatus)}>{invoice.displayStatus.replaceAll('_', ' ')}</Badge>
+      <div className="inline">
+        <a href={`${apiUrl}/documents/customer-invoices/${invoice.id}`} target="_blank" rel="noreferrer">Print</a>
+        <Badge tone={statusTone(invoice.displayStatus)}>{invoice.displayStatus.replaceAll('_', ' ')}</Badge>
+      </div>
     </header>
     <div className="grid grid--2">
       <Card title="Summary">

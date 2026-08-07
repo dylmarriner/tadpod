@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
 import { CancelSalesOrderLineButton, SalesOrderActions } from '../../../../../components/sales-order-forms';
 import { serverApi } from '../../../../../lib/server-api';
-import { ApiError } from '../../../../../lib/api';
+import { apiUrl, ApiError } from '../../../../../lib/api';
 
 type Line = {
   id: string; product: { id: string; sku: string; name: string }; unitPrice: string; orderedQuantity: string;
@@ -51,7 +51,10 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
         <h1>{order.orderNumber}</h1>
         <p>{order.customer.code} — {order.customer.name} · {order.warehouse.code} · {order.currency} · Total {order.totalAmount}</p>
       </div>
-      <Badge tone="info">{order.status.replaceAll('_', ' ')}</Badge>
+      <div className="inline">
+        <a href={`${apiUrl}/documents/sales-orders/${order.id}`} target="_blank" rel="noreferrer">Print</a>
+        <Badge tone="info">{order.status.replaceAll('_', ' ')}</Badge>
+      </div>
     </header>
     <div className="grid grid--2">
       <Card title="Actions">

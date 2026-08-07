@@ -1,6 +1,6 @@
 import { Card, EmptyState } from '@tadpods/ui';
 import { serverApi } from '../../../../../lib/server-api';
-import { ApiError } from '../../../../../lib/api';
+import { apiUrl, ApiError } from '../../../../../lib/api';
 
 type StatementLine = { type: string; ref: { id: string; number: string }; date: string; description: string; debit: string; credit: string; runningBalance: string };
 type Statement = { customerId: string; asOf: string; openingBalance: string; closingBalance: string; lines: readonly StatementLine[] };
@@ -27,6 +27,7 @@ export default async function CustomerStatementPage({ params }: { params: Promis
         <h1>Statement — {customer.code} — {customer.name}</h1>
         <p>As of {new Date(statement.asOf).toLocaleString('en-NZ')} · Closing balance {statement.closingBalance}</p>
       </div>
+      <a href={`${apiUrl}/documents/customers/${customer.id}/statement`} target="_blank" rel="noreferrer">Print</a>
     </header>
     <Card title="Transactions">
       {statement.lines.length === 0
