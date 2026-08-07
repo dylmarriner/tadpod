@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { createPdfTheme, EmailLayout } from './index.js';
+import { createPdfTheme, defaultDocumentBrand, EmailLayout, RecordDocument, StatementDocument } from './index.js';
 
 describe('TADPODS document branding', () => {
   it('brands email output by default', () => {
@@ -11,5 +11,64 @@ describe('TADPODS document branding', () => {
 
   it('brands PDF metadata', () => {
     expect(createPdfTheme().metadata).toMatchObject({ creator: 'TADPODS', producer: 'TADPODS document service' });
+  });
+});
+
+describe('RecordDocument', () => {
+  it('renders a branded document with parties, lines, and totals', () => {
+    const html = renderToStaticMarkup(
+      <RecordDocument
+        documentType="Sales Order"
+        documentNumber="SO-000123"
+        status="CONFIRMED"
+        issuedDate="7 August 2026"
+        parties={[{ label: 'Customer', name: 'Acme Trading', lines: ['ACME-001'] }]}
+        meta={[{ label: 'Warehouse', value: 'Main Store' }]}
+        lines={[{ description: 'Widget', quantity: '10', unitPrice: '25.00', amount: '250.00' }]}
+        totals={[{ label: 'Total', value: '250.00', emphasis: true }]}
+        notes="Handle with care"
+      />
+    );
+    expect(html).toContain('Sales Order');
+    expect(html).toContain('SO-000123');
+    expect(html).toContain('Acme Trading');
+    expect(html).toContain('250.00');
+    expect(html).toContain('Handle with care');
+    expect(html).toContain(defaultDocumentBrand.displayName);
+  });
+
+  it('reflects a custom brand instead of the TADPODS default', () => {
+    const html = renderToStaticMarkup(
+      <RecordDocument
+        brand={{ ...defaultDocumentBrand, displayName: 'Northwind Traders' }}
+        documentType="Purchase Order"
+        documentNumber="PO-000001"
+        issuedDate="7 August 2026"
+        parties={[{ label: 'Supplier', name: 'Acme Supply Co' }]}
+        lines={[{ description: 'Widget', amount: '10.00' }]}
+        totals={[{ label: 'Total', value: '10.00' }]}
+      />
+    );
+    expect(html).toContain('Northwind Traders');
+    expect(html).not.toContain('>TADPODS<');
+  });
+});
+
+describe('StatementDocument', () => {
+  it('renders a running-balance statement', () => {
+    const html = renderToStaticMarkup(
+      <StatementDocument
+        accountName="Acme Trading"
+        accountReference="ACME-001"
+        asOf="7 August 2026"
+        openingBalance="0.00"
+        closingBalance="100.00"
+        lines={[{ date: '1 Aug 2026', description: 'Invoice INV-000001', debit: '250.00', credit: '', runningBalance: '250.00' }]}
+      />
+    );
+    expect(html).toContain('Statement');
+    expect(html).toContain('Acme Trading');
+    expect(html).toContain('INV-000001');
+    expect(html).toContain('100.00');
   });
 });

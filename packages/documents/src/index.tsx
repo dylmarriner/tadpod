@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 export type DocumentBrand = {
   displayName: string;
@@ -92,6 +92,243 @@ export function EmailLayout({
             </tr>
           </tbody>
         </table>
+      </body>
+    </html>
+  );
+}
+
+export type DocumentParty = { label: string; name: string; lines?: readonly string[] };
+export type DocumentMetaField = { label: string; value: string };
+export type DocumentLine = { description: string; quantity?: string; unitPrice?: string; amount: string };
+export type DocumentTotal = { label: string; value: string; emphasis?: boolean };
+
+/**
+ * The shared print/PDF-ready shell every branded business document (sales order, purchase
+ * order, delivery note, goods-received note, invoice, credit note) renders through. `@media
+ * print` rules keep it single-column and ink-friendly when a browser's own "Print to PDF" is
+ * used to turn this into a PDF — Phase 6 does not add a PDF-rendering dependency, so this is
+ * the mechanism by which these documents become PDFs.
+ */
+export function RecordDocument({
+  brand = defaultDocumentBrand,
+  documentType,
+  documentNumber,
+  status,
+  issuedDate,
+  parties,
+  meta = [],
+  lines,
+  lineColumns = ['Description', 'Quantity', 'Unit price', 'Amount'],
+  totals,
+  notes
+}: {
+  brand?: DocumentBrand;
+  documentType: string;
+  documentNumber: string;
+  status?: string;
+  issuedDate: string;
+  parties: readonly DocumentParty[];
+  meta?: readonly DocumentMetaField[];
+  lines: readonly DocumentLine[];
+  lineColumns?: readonly [string, string, string, string];
+  totals: readonly DocumentTotal[];
+  notes?: string | null;
+}) {
+  return (
+    <html>
+      <head>
+        <title>{`${documentType} ${documentNumber} | ${brand.displayName}`}</title>
+        <style>{PRINT_STYLES}</style>
+      </head>
+      <body style={{ '--brand-primary': brand.primaryColour, '--brand-accent': brand.accentColour } as CSSProperties}>
+        <main className="doc">
+          <header className="doc__header">
+            <div className="doc__brand">
+              {brand.logoUrl ? <img src={brand.logoUrl} alt={brand.displayName} className="doc__logo" /> : null}
+              <div>
+                <div className="doc__brand-name">{brand.displayName}</div>
+                {brand.legalName ? <div className="doc__muted">{brand.legalName}</div> : null}
+              </div>
+            </div>
+            <div className="doc__identity">
+              <h1>{documentType}</h1>
+              <div className="doc__number">{documentNumber}</div>
+              {status ? <div className="doc__status">{status}</div> : null}
+              <div className="doc__muted">Issued {issuedDate}</div>
+            </div>
+          </header>
+
+          <section className="doc__parties">
+            {parties.map((party) => (
+              <div key={party.label} className="doc__party">
+                <div className="doc__label">{party.label}</div>
+                <div className="doc__party-name">{party.name}</div>
+                {(party.lines ?? []).map((line, index) => (
+                  <div key={index} className="doc__muted">{line}</div>
+                ))}
+              </div>
+            ))}
+          </section>
+
+          {meta.length > 0 ? (
+            <section className="doc__meta">
+              {meta.map((field) => (
+                <div key={field.label} className="doc__meta-field">
+                  <div className="doc__label">{field.label}</div>
+                  <div>{field.value}</div>
+                </div>
+              ))}
+            </section>
+          ) : null}
+
+          <table className="doc__table">
+            <thead>
+              <tr>
+                {lineColumns.map((heading) => (
+                  <th key={heading}>{heading}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line, index) => (
+                <tr key={index}>
+                  <td>{line.description}</td>
+                  <td>{line.quantity ?? ''}</td>
+                  <td>{line.unitPrice ?? ''}</td>
+                  <td className="doc__amount">{line.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <section className="doc__totals">
+            {totals.map((total) => (
+              <div key={total.label} className={total.emphasis ? 'doc__total doc__total--emphasis' : 'doc__total'}>
+                <span>{total.label}</span>
+                <span>{total.value}</span>
+              </div>
+            ))}
+          </section>
+
+          {notes ? (
+            <section className="doc__notes">
+              <div className="doc__label">Notes</div>
+              <p>{notes}</p>
+            </section>
+          ) : null}
+
+          <footer className="doc__footer">{brand.documentFooter}</footer>
+        </main>
+      </body>
+    </html>
+  );
+}
+
+const PRINT_STYLES = `
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #111827; background: #f4f7f8; }
+  .doc { max-width: 800px; margin: 0 auto; background: #fff; padding: 32px; }
+  .doc__header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--brand-primary); padding-bottom: 16px; margin-bottom: 24px; }
+  .doc__brand { display: flex; gap: 12px; align-items: center; }
+  .doc__logo { height: 40px; }
+  .doc__brand-name { font-weight: 800; font-size: 20px; color: var(--brand-primary); }
+  .doc__identity { text-align: right; }
+  .doc__identity h1 { margin: 0; font-size: 20px; }
+  .doc__number { font-weight: 700; }
+  .doc__status { display: inline-block; margin-top: 4px; padding: 2px 10px; border-radius: 999px; background: var(--brand-accent); color: #062d2a; font-size: 12px; font-weight: 700; }
+  .doc__muted { color: #64748b; font-size: 13px; }
+  .doc__label { text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; color: #64748b; margin-bottom: 4px; }
+  .doc__parties { display: flex; gap: 32px; margin-bottom: 20px; flex-wrap: wrap; }
+  .doc__party { min-width: 200px; }
+  .doc__party-name { font-weight: 700; }
+  .doc__meta { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; padding: 12px 0; border-top: 1px solid #dbe3ea; border-bottom: 1px solid #dbe3ea; }
+  .doc__table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  .doc__table th { text-align: left; font-size: 12px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #dbe3ea; padding: 8px; }
+  .doc__table td { padding: 8px; border-bottom: 1px solid #eef2f6; font-size: 14px; }
+  .doc__amount { text-align: right; }
+  .doc__totals { margin-left: auto; width: 260px; }
+  .doc__total { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 14px; }
+  .doc__total--emphasis { font-weight: 800; font-size: 16px; border-top: 2px solid var(--brand-primary); margin-top: 4px; padding-top: 8px; }
+  .doc__notes { margin-top: 24px; }
+  .doc__footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #dbe3ea; color: #64748b; font-size: 12px; }
+  @media print {
+    body { background: #fff; }
+    .doc { padding: 0; max-width: none; }
+    @page { margin: 16mm; }
+  }
+`;
+
+export type StatementLine = { date: string; description: string; debit: string; credit: string; runningBalance: string };
+
+/** A customer or supplier statement — same shell, a running-balance ledger table instead of line items. */
+export function StatementDocument({
+  brand = defaultDocumentBrand,
+  accountName,
+  accountReference,
+  asOf,
+  openingBalance,
+  closingBalance,
+  lines
+}: {
+  brand?: DocumentBrand;
+  accountName: string;
+  accountReference: string;
+  asOf: string;
+  openingBalance: string;
+  closingBalance: string;
+  lines: readonly StatementLine[];
+}) {
+  return (
+    <html>
+      <head>
+        <title>{`Statement — ${accountName} | ${brand.displayName}`}</title>
+        <style>{PRINT_STYLES}</style>
+      </head>
+      <body style={{ '--brand-primary': brand.primaryColour, '--brand-accent': brand.accentColour } as CSSProperties}>
+        <main className="doc">
+          <header className="doc__header">
+            <div className="doc__brand">
+              {brand.logoUrl ? <img src={brand.logoUrl} alt={brand.displayName} className="doc__logo" /> : null}
+              <div>
+                <div className="doc__brand-name">{brand.displayName}</div>
+                {brand.legalName ? <div className="doc__muted">{brand.legalName}</div> : null}
+              </div>
+            </div>
+            <div className="doc__identity">
+              <h1>Statement</h1>
+              <div className="doc__muted">As of {asOf}</div>
+            </div>
+          </header>
+          <section className="doc__parties">
+            <div className="doc__party">
+              <div className="doc__label">Account</div>
+              <div className="doc__party-name">{accountName}</div>
+              <div className="doc__muted">{accountReference}</div>
+            </div>
+          </section>
+          <table className="doc__table">
+            <thead>
+              <tr><th>Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Balance</th></tr>
+            </thead>
+            <tbody>
+              <tr><td colSpan={4}>Opening balance</td><td className="doc__amount">{openingBalance}</td></tr>
+              {lines.map((line, index) => (
+                <tr key={index}>
+                  <td>{line.date}</td>
+                  <td>{line.description}</td>
+                  <td className="doc__amount">{line.debit}</td>
+                  <td className="doc__amount">{line.credit}</td>
+                  <td className="doc__amount">{line.runningBalance}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <section className="doc__totals">
+            <div className="doc__total doc__total--emphasis"><span>Closing balance</span><span>{closingBalance}</span></div>
+          </section>
+          <footer className="doc__footer">{brand.documentFooter}</footer>
+        </main>
       </body>
     </html>
   );

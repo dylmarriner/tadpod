@@ -18,6 +18,7 @@ import { CustomerInvoicesModule } from './modules/customer-invoices/customer-inv
 import { CustomerPaymentsModule } from './modules/customer-payments/customer-payments.module.js';
 import { CustomerCreditsModule } from './modules/customer-credits/customer-credits.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { DocumentsModule } from './modules/documents/documents.module.js';
 import { WarehousesModule } from './modules/warehouses/warehouses.module.js';
 import { PlatformService } from './platform.service.js';
 import { APP_ENVIRONMENT } from './platform.tokens.js';
@@ -38,7 +39,8 @@ import { APP_ENVIRONMENT } from './platform.tokens.js';
     CustomerInvoicesModule,
     CustomerPaymentsModule,
     CustomerCreditsModule,
-    ReportsModule
+    ReportsModule,
+    DocumentsModule
   ],
   controllers: [HealthController, AuthController, BrandController, DashboardController, UsersController, RolesController, AuditController, SequenceController],
   providers: [
