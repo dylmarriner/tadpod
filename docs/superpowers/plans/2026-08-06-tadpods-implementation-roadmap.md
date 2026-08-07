@@ -291,11 +291,11 @@ Reservation changes must be transactional and visible from both product and orde
 
 ### Integration Gate
 
-- [ ] Sales entry displays live availability
-- [ ] Delivery and backorder quantities reconcile to the order
-- [ ] Incoming stock can be assigned to backorders
-- [ ] Backorder dashboard links to all source records
-- [ ] Stock cannot be consumed twice
+- [x] Sales entry displays live availability
+- [x] Delivery and backorder quantities reconcile to the order
+- [x] Incoming stock can be assigned to backorders
+- [x] Backorder dashboard links to all source records
+- [x] Stock cannot be consumed twice
 
 ---
 
