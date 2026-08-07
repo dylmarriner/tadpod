@@ -57,6 +57,44 @@ export async function createBackorderForShortfall(transaction: DatabaseTransacti
   });
 }
 
+/**
+ * Shrink a sales order line's open backorder demand by `quantity` because that much is about
+ * to be reserved, marking the same amount `allocatedQuantity` on the backorder line — earmarked
+ * stock, not yet delivered — rather than `cancelledQuantity` (which means withdrawn demand, not
+ * "now covered by a reservation"). Must run *before* the caller increments
+ * `SalesOrderLine.reservedQuantity`: `reservedQuantity` and `backorderedQuantity` both count
+ * toward the `SalesOrderLine_quantity_balance` check constraint, so incrementing one before
+ * shrinking the other would momentarily claim more than was ordered and the write would be
+ * rejected. Returns the backorder line the reservation should link to (`StockReservation.
+ * backorderLineId`), so `DeliveriesService` can later mark that same quantity fulfilled once it
+ * actually ships — a backorder is only ever `FULFILLED` by a real delivery, not by a reservation.
+ */
+export async function absorbBackorderForReservation(transaction: DatabaseTransaction, salesOrderLineId: string, quantity: Quantity): Promise<string | null> {
+  if (!quantity.isPositive()) return null;
+
+  let remaining = quantity;
+  let firstBackorderLineId: string | null = null;
+  const backorderLines = await transaction.backorderLine.findMany({
+    where: { salesOrderLineId, backorder: { status: { not: 'CANCELLED' } } },
+    orderBy: { createdAt: 'asc' }
+  });
+  for (const line of backorderLines) {
+    if (!remaining.isPositive()) break;
+    const open = Quantity.from(line.quantity.toString()).subtract(Quantity.from(line.fulfilledQuantity.toString())).subtract(Quantity.from(line.cancelledQuantity.toString()));
+    const alreadyAllocated = Quantity.from(line.allocatedQuantity.toString());
+    const available = alreadyAllocated.greaterThan(open) ? Quantity.zero() : open.subtract(alreadyAllocated);
+    if (!available.isPositive()) continue;
+    const absorbed = available.lessThan(remaining) ? available : remaining;
+
+    await transaction.backorderLine.update({ where: { id: line.id }, data: { allocatedQuantity: { increment: absorbed.toDecimalString() } } });
+    await transaction.salesOrderLine.update({ where: { id: salesOrderLineId }, data: { backorderedQuantity: { decrement: absorbed.toDecimalString() } } });
+    await refreshBackorderStatus(transaction, line.backorderId);
+    firstBackorderLineId ??= line.id;
+    remaining = remaining.subtract(absorbed);
+  }
+  return firstBackorderLineId;
+}
+
 /** Re-derive a backorder's status purely from its lines' current quantities. */
 export async function refreshBackorderStatus(transaction: DatabaseTransaction, backorderId: string): Promise<void> {
   const lines = await transaction.backorderLine.findMany({ where: { backorderId } });

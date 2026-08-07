@@ -3,7 +3,7 @@ import { orderDemands, planAllocationRun, Quantity, type ReservationDemand } fro
 import { database, Prisma, withTransaction, type DatabaseTransaction, type Prisma as PrismaNamespace } from '@tadpods/database';
 import type { CreateReservationInput, ListReservationsQuery, Reservation, ReservationAllocationResult, RunReservationAllocationInput } from '@tadpods/contracts';
 import { activeReservedFor, createReservation, lockStockKey, releaseReservation, stockOnHandFor } from './reservation-posting.js';
-import { createBackorderForShortfall, refreshBackorderStatus } from '../backorders/backorder-posting.js';
+import { absorbBackorderForReservation } from '../backorders/backorder-posting.js';
 
 export type SalesActor = { id: string; permissions: readonly string[] };
 export type SalesRequestContext = { requestId: string; ipAddress?: string };
@@ -82,6 +82,12 @@ export class ReservationsService {
       }
 
       await lockStockKey(transaction, line.productId, line.salesOrder.warehouseId);
+
+      // Manually reserving demand that was previously backordered must shrink the open
+      // backorder *before* the reservation increments `reservedQuantity` — both count toward
+      // the same ordered-quantity check constraint.
+      const backorderLineId = await absorbBackorderForReservation(transaction, line.id, requested);
+
       const reservation = await createReservation(transaction, {
         salesOrderId: line.salesOrderId,
         salesOrderLineId: line.id,
@@ -90,25 +96,9 @@ export class ReservationsService {
         quantity: requested,
         method: 'MANUAL',
         createdById: actor.id,
+        backorderLineId,
         notes: input.notes ?? null
       });
-
-      // Manually reserving demand that was previously backordered shrinks the open backorder
-      // by the same amount, so the two records never both claim the same stock.
-      const backorderLine = await transaction.backorderLine.findFirst({
-        where: { salesOrderLineId: line.id, backorder: { status: { not: 'CANCELLED' } } }
-      });
-      if (backorderLine) {
-        const open = Quantity.from(backorderLine.quantity.toString())
-          .subtract(Quantity.from(backorderLine.fulfilledQuantity.toString()))
-          .subtract(Quantity.from(backorderLine.cancelledQuantity.toString()));
-        const absorbed = requested.lessThan(open) ? requested : open;
-        if (absorbed.isPositive()) {
-          await transaction.backorderLine.update({ where: { id: backorderLine.id }, data: { cancelledQuantity: { increment: absorbed.toDecimalString() } } });
-          await transaction.salesOrderLine.update({ where: { id: line.id }, data: { backorderedQuantity: { decrement: absorbed.toDecimalString() } } });
-          await refreshBackorderStatus(transaction, backorderLine.backorderId);
-        }
-      }
 
       await this.audit(transaction, 'reservation.create', reservation.id, actor, context, { salesOrderLineId: line.id, quantity: requested.toDecimalString() });
       const withRelations = await transaction.stockReservation.findUniqueOrThrow({ where: { id: reservation.id }, include: reservationInclude });
@@ -135,25 +125,33 @@ export class ReservationsService {
     return withTransaction(async (transaction) => {
       await lockStockKey(transaction, input.productId, input.warehouseId);
 
+      // Any order still short on this line is a candidate, regardless of its overall
+      // fulfilment status — a `PARTIALLY_DELIVERED` order can still carry open backordered
+      // demand on other lines just as much as a freshly `BACKORDERED` one.
       const lines = await transaction.salesOrderLine.findMany({
         where: {
           productId: input.productId,
-          salesOrder: { warehouseId: input.warehouseId, status: { in: ['CONFIRMED', 'PARTIALLY_ALLOCATED', 'BACKORDERED'] } }
+          backorderedQuantity: { gt: 0 },
+          salesOrder: { warehouseId: input.warehouseId, status: { notIn: ['DRAFT', 'CANCELLED', 'CLOSED'] } }
         },
         include: { salesOrder: true }
       });
 
+      // Demand here is exactly the lines' open backordered quantity: immediately after
+      // confirmation every line's outstanding demand is already either reserved or
+      // backordered (see `SalesOrdersService.confirm`), so an allocation run only ever has
+      // backordered demand to compete for. Not subtracting `backorderedQuantity` — it *is*
+      // the demand this run exists to satisfy.
       const demands: ReservationDemand[] = lines
         .map((line) => {
-          const unreserved = Quantity.from(line.orderedQuantity.toString())
+          const unfulfilled = Quantity.from(line.orderedQuantity.toString())
             .subtract(Quantity.from(line.deliveredQuantity.toString()))
             .subtract(Quantity.from(line.cancelledQuantity.toString()))
-            .subtract(Quantity.from(line.reservedQuantity.toString()))
-            .subtract(Quantity.from(line.backorderedQuantity.toString()));
+            .subtract(Quantity.from(line.reservedQuantity.toString()));
           return {
             salesOrderId: line.salesOrderId,
             salesOrderLineId: line.id,
-            quantity: unreserved.toDecimalString(),
+            quantity: unfulfilled.toDecimalString(),
             priority: line.salesOrder.priority,
             promisedDate: line.salesOrder.promisedDate?.toISOString() ?? null,
             confirmedAt: (line.salesOrder.confirmedAt ?? line.salesOrder.createdAt).toISOString()
@@ -172,40 +170,28 @@ export class ReservationsService {
       const allocations = planAllocationRun(available.toDecimalString(), ordered, input.method);
 
       const reservations: ReservationWithRelations[] = [];
-      const backordersCreated: string[] = [];
       for (const allocation of allocations) {
         const line = lines.find((candidate) => candidate.id === allocation.salesOrderLineId);
-        if (!line) continue;
+        if (!line || !Quantity.from(allocation.quantity).isPositive()) continue;
 
-        if (Quantity.from(allocation.quantity).isPositive()) {
-          const reservation = await createReservation(transaction, {
-            salesOrderId: allocation.salesOrderId,
-            salesOrderLineId: allocation.salesOrderLineId,
-            productId: input.productId,
-            warehouseId: input.warehouseId,
-            quantity: Quantity.from(allocation.quantity),
-            method: input.method,
-            createdById: actor.id
-          });
-          reservations.push(await transaction.stockReservation.findUniqueOrThrow({ where: { id: reservation.id }, include: reservationInclude }));
-        }
-        if (Quantity.from(allocation.shortfallQuantity).isPositive()) {
-          const backorder = await createBackorderForShortfall(transaction, {
-            salesOrderId: allocation.salesOrderId,
-            salesOrderLineId: allocation.salesOrderLineId,
-            productId: input.productId,
-            customerId: line.salesOrder.customerId,
-            warehouseId: input.warehouseId,
-            quantity: Quantity.from(allocation.shortfallQuantity),
-            priority: line.salesOrder.priority,
-            promisedDate: line.salesOrder.promisedDate,
-            createdById: actor.id
-          });
-          await transaction.salesOrderLine.update({ where: { id: line.id }, data: { backorderedQuantity: { increment: allocation.shortfallQuantity } } });
-          await refreshBackorderStatus(transaction, backorder.id);
-          backordersCreated.push(backorder.id);
-        }
+        // Shrink the backorder this reservation is fulfilling before claiming the stock —
+        // both counters are bound by the same ordered-quantity check constraint. Whatever
+        // remains unreserved (`allocation.shortfallQuantity`) is simply left backordered;
+        // it is already represented by `BackorderLine`, so no new backorder is raised.
+        const backorderLineId = await absorbBackorderForReservation(transaction, line.id, Quantity.from(allocation.quantity));
+        const reservation = await createReservation(transaction, {
+          salesOrderId: allocation.salesOrderId,
+          salesOrderLineId: allocation.salesOrderLineId,
+          productId: input.productId,
+          warehouseId: input.warehouseId,
+          quantity: Quantity.from(allocation.quantity),
+          method: input.method,
+          createdById: actor.id,
+          backorderLineId
+        });
+        reservations.push(await transaction.stockReservation.findUniqueOrThrow({ where: { id: reservation.id }, include: reservationInclude }));
       }
+      const backordersCreated: string[] = [];
 
       await this.audit(transaction, 'reservation.run-allocation', `${input.productId}:${input.warehouseId}`, actor, context, {
         method: input.method,

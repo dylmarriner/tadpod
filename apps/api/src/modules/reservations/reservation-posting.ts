@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Quantity, validateReservationWithinStock, type ReservationMethod } from '@tadpods/domain';
 import type { DatabaseTransaction, StockReservation as StockReservationRow } from '@tadpods/database';
+import { refreshBackorderStatus } from '../backorders/backorder-posting.js';
 
 /**
  * Shared reservation-posting primitives, used directly (not through Nest DI) by
@@ -126,6 +127,19 @@ export async function consumeReservation(transaction: DatabaseTransaction, reser
     where: { id: reservation.salesOrderLineId },
     data: { reservedQuantity: { decrement: quantity.toDecimalString() } }
   });
+
+  // A backorder is only ever fulfilled by stock actually shipping — consuming a reservation
+  // that was earmarked against a backorder line (via `absorbBackorderForReservation`) is
+  // exactly that moment, so the same quantity moves from that line's `allocatedQuantity` to
+  // its `fulfilledQuantity` here.
+  if (reservation.backorderLineId) {
+    await transaction.backorderLine.update({
+      where: { id: reservation.backorderLineId },
+      data: { fulfilledQuantity: { increment: quantity.toDecimalString() } }
+    });
+    const backorderLine = await transaction.backorderLine.findUniqueOrThrow({ where: { id: reservation.backorderLineId } });
+    await refreshBackorderStatus(transaction, backorderLine.backorderId);
+  }
 
   if (quantity.compare(reservedQuantity) === 0) {
     await transaction.stockReservation.update({ where: { id: reservationId }, data: { status: 'CONSUMED', consumedAt: new Date() } });

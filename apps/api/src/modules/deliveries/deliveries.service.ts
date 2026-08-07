@@ -191,7 +191,7 @@ export class DeliveriesService {
         await transaction.salesOrderLine.update({ where: { id: line.salesOrderLineId }, data: { deliveredQuantity: { decrement: line.quantity.toString() } } });
       }
       await this.refreshOrderStatus(transaction, delivery.salesOrderId);
-      const updated = await transaction.delivery.update({ where: { id }, data: { reversedAt: new Date() }, include: deliveryInclude });
+      const updated = await transaction.delivery.update({ where: { id }, data: { status: 'REVERSED', reversedAt: new Date() }, include: deliveryInclude });
       await this.audit(transaction, 'delivery.reverse', id, actor, context, { reason: input.notes ?? null });
       return toDelivery(updated);
     });

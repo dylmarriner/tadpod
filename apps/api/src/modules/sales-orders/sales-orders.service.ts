@@ -317,7 +317,13 @@ export class SalesOrdersService {
     return withTransaction(async (transaction) => {
       const order = await transaction.salesOrder.findUnique({ where: { id }, include: salesOrderInclude });
       if (!order) throw new NotFoundException('Sales order not found');
-      validateSalesOrderEditingTransition(order.status, 'CANCELLED');
+      // Past DRAFT/CONFIRMED, status is a *derived* fulfilment summary (see
+      // `deriveSalesOrderFulfilmentStatus`), never literally 'CONFIRMED' again — so
+      // cancellation is only blocked once the order is already terminal, not gated by
+      // `validateSalesOrderEditingTransition`, which governs commercial editing only.
+      if (order.status === 'CANCELLED' || order.status === 'CLOSED') {
+        throw new ConflictException(`Cannot cancel an order with status ${order.status}`);
+      }
 
       const activeReservations = await transaction.stockReservation.findMany({ where: { salesOrderId: id, status: 'ACTIVE' } });
       for (const reservation of activeReservations) {
