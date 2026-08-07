@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { createCustomerSchema, customerAddressInputSchema, listCustomersQuerySchema, similarCustomerNamesQuerySchema, updateCustomerSchema } from '@tadpods/contracts';
+import { createCustomerSchema, customerAddressInputSchema, customerStatementQuerySchema, listCustomersQuerySchema, similarCustomerNamesQuerySchema, updateCustomerSchema } from '@tadpods/contracts';
 import { RequirePermission } from '../../platform.decorators.js';
 import { CustomersService } from './customers.service.js';
 
@@ -42,6 +42,13 @@ export class CustomersController {
   @RequirePermission('customers.read')
   account(@Param('id') id: string) {
     return this.customers.account(id);
+  }
+
+  @Get(':id/statement')
+  @RequirePermission('customers.read')
+  statement(@Param('id') id: string, @Query() query: unknown) {
+    const { asOf } = customerStatementQuerySchema.parse(query);
+    return this.customers.statement(id, asOf ? new Date(asOf) : new Date());
   }
 
   @Get(':id/addresses')

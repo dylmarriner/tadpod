@@ -98,6 +98,7 @@ export {
   computeCustomerInvoiceOutstandingMinorUnits,
   computeUninvoicedQuantity,
   validateInvoiceLineQuantity,
+  deriveSalesOrderInvoicingStatus,
   type CustomerInvoiceStatus,
   type CustomerInvoiceDisplayStatus,
   type InvoiceableLine,

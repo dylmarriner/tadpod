@@ -4,6 +4,7 @@ import {
   computeUninvoicedQuantity,
   deriveCustomerInvoiceDisplayStatus,
   deriveCustomerInvoiceStatus,
+  deriveSalesOrderInvoicingStatus,
   validateInvoiceLineQuantity
 } from './customer-invoice.js';
 
@@ -78,5 +79,23 @@ describe('validateInvoiceLineQuantity', () => {
 
   it('rejects a zero or negative quantity', () => {
     expect(() => validateInvoiceLineQuantity({ deliveredQuantity: '10', invoicedQuantity: '0' }, '0')).toThrow(/greater than zero/);
+  });
+});
+
+describe('deriveSalesOrderInvoicingStatus', () => {
+  it('is NOT_INVOICED when nothing has been invoiced', () => {
+    expect(deriveSalesOrderInvoicingStatus([{ deliveredQuantity: '10', invoicedQuantity: '0' }])).toBe('NOT_INVOICED');
+  });
+
+  it('is PARTIALLY_INVOICED when some but not all delivered quantity has been invoiced', () => {
+    expect(deriveSalesOrderInvoicingStatus([{ deliveredQuantity: '10', invoicedQuantity: '4' }])).toBe('PARTIALLY_INVOICED');
+  });
+
+  it('is INVOICED once invoiced covers all delivered quantity', () => {
+    expect(deriveSalesOrderInvoicingStatus([{ deliveredQuantity: '10', invoicedQuantity: '10' }])).toBe('INVOICED');
+  });
+
+  it('aggregates across multiple lines', () => {
+    expect(deriveSalesOrderInvoicingStatus([{ deliveredQuantity: '10', invoicedQuantity: '10' }, { deliveredQuantity: '5', invoicedQuantity: '0' }])).toBe('PARTIALLY_INVOICED');
   });
 });

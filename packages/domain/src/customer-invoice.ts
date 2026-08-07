@@ -79,3 +79,21 @@ export function validateInvoiceLineQuantity(line: Pick<InvoiceableLine, 'deliver
     throw new Error(`Invoicing ${requested.toDecimalString()} would exceed the ${uninvoiced.toDecimalString()} delivered and not yet invoiced`);
   }
 }
+
+/**
+ * Mirrors the Postgres `SalesOrderInvoicingStatus` enum, derived purely from each line's
+ * delivered vs. invoiced quantity — never stored independently of what the lines say.
+ */
+export function deriveSalesOrderInvoicingStatus(
+  lines: readonly Pick<InvoiceableLine, 'deliveredQuantity' | 'invoicedQuantity'>[]
+): 'NOT_INVOICED' | 'PARTIALLY_INVOICED' | 'INVOICED' {
+  let delivered = Quantity.zero();
+  let invoiced = Quantity.zero();
+  for (const line of lines) {
+    delivered = delivered.add(Quantity.from(line.deliveredQuantity));
+    invoiced = invoiced.add(Quantity.from(line.invoicedQuantity));
+  }
+  if (invoiced.isZero()) return 'NOT_INVOICED';
+  if (delivered.isPositive() && invoiced.compare(delivered) >= 0) return 'INVOICED';
+  return 'PARTIALLY_INVOICED';
+}

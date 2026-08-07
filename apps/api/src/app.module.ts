@@ -14,6 +14,9 @@ import { SalesOrdersModule } from './modules/sales-orders/sales-orders.module.js
 import { ReservationsModule } from './modules/reservations/reservations.module.js';
 import { DeliveriesModule } from './modules/deliveries/deliveries.module.js';
 import { BackordersModule } from './modules/backorders/backorders.module.js';
+import { CustomerInvoicesModule } from './modules/customer-invoices/customer-invoices.module.js';
+import { CustomerPaymentsModule } from './modules/customer-payments/customer-payments.module.js';
+import { CustomerCreditsModule } from './modules/customer-credits/customer-credits.module.js';
 import { WarehousesModule } from './modules/warehouses/warehouses.module.js';
 import { PlatformService } from './platform.service.js';
 import { APP_ENVIRONMENT } from './platform.tokens.js';
@@ -30,7 +33,10 @@ import { APP_ENVIRONMENT } from './platform.tokens.js';
     SalesOrdersModule,
     ReservationsModule,
     DeliveriesModule,
-    BackordersModule
+    BackordersModule,
+    CustomerInvoicesModule,
+    CustomerPaymentsModule,
+    CustomerCreditsModule
   ],
   controllers: [HealthController, AuthController, BrandController, DashboardController, UsersController, RolesController, AuditController, SequenceController],
   providers: [
