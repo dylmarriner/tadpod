@@ -20,6 +20,9 @@ import { CustomerCreditsModule } from './modules/customer-credits/customer-credi
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { DocumentsModule } from './modules/documents/documents.module.js';
 import { ImportsModule } from './modules/imports/imports.module.js';
+import { SupplierBillsModule } from './modules/supplier-bills/supplier-bills.module.js';
+import { SupplierPaymentsModule } from './modules/supplier-payments/supplier-payments.module.js';
+import { SupplierCreditsModule } from './modules/supplier-credits/supplier-credits.module.js';
 import { WarehousesModule } from './modules/warehouses/warehouses.module.js';
 import { PlatformService } from './platform.service.js';
 import { APP_ENVIRONMENT } from './platform.tokens.js';
@@ -42,7 +45,10 @@ import { APP_ENVIRONMENT } from './platform.tokens.js';
     CustomerCreditsModule,
     ReportsModule,
     DocumentsModule,
-    ImportsModule
+    ImportsModule,
+    SupplierBillsModule,
+    SupplierPaymentsModule,
+    SupplierCreditsModule
   ],
   controllers: [HealthController, AuthController, BrandController, DashboardController, UsersController, RolesController, AuditController, SequenceController],
   providers: [

@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { computeSupplierAccount, Money } from '@tadpods/domain';
+import { computeLineTotalMinorUnits, computeSupplierAccount, Money, netAccountsPayable, Quantity } from '@tadpods/domain';
 import { database, Prisma, withTransaction, type Supplier as SupplierRow, type SupplierAddress as SupplierAddressRow } from '@tadpods/database';
 import type {
   CreateSupplierInput,
@@ -9,6 +9,7 @@ import type {
   SupplierAccount,
   SupplierAddress,
   SupplierAddressInput,
+  SupplierStatement,
   UpdateSupplierInput
 } from '@tadpods/contracts';
 
@@ -161,15 +162,24 @@ export class SuppliersService {
     return { removed: true };
   }
 
+  /**
+   * The accounts-payable account projection: posted bills only (never a purchase-order-style
+   * commitment) drive `amountOwed`/aging, unapplied `SupplierCredit` balances net off
+   * `amountOwed`, and `receivedNotBilled` sums `PurchaseOrderLine.receivedQuantity -
+   * billedQuantity` across every non-terminal order — visibly separate from `amountOwed`.
+   */
   async account(supplierId: string, asOf: Date = new Date()): Promise<SupplierAccount> {
     const supplier = await database.supplier.findUnique({ where: { id: supplierId }, select: { id: true, currency: true } });
     if (!supplier) throw new NotFoundException('Supplier not found');
 
-    // No supplier-bill table exists yet (Task 4) — the projection reads zero for every
-    // component rather than inventing a balance, exactly as Phase 2 Task 8 did for
-    // reservations/incoming-stock before those tables existed.
-    const projection = computeSupplierAccount([], asOf);
-    const zero = Money.from(0n, supplier.currency).toDecimalString();
+    const [billsForAccount, unappliedCredit, receivedNotBilledMinorUnits] = await Promise.all([
+      this.loadBillsForAccount(supplierId),
+      this.sumUnappliedCredit(supplierId),
+      this.sumReceivedNotBilled(supplierId)
+    ]);
+    const projection = computeSupplierAccount(billsForAccount, asOf);
+    const netOwed = netAccountsPayable(projection.amountOwedMinorUnits, unappliedCredit);
+
     return {
       supplierId,
       asOf: asOf.toISOString(),
@@ -177,9 +187,109 @@ export class SuppliersService {
       overdue: Money.from(projection.overdueMinorUnits, supplier.currency).toDecimalString(),
       dueWithin7Days: Money.from(projection.dueWithin7DaysMinorUnits, supplier.currency).toDecimalString(),
       dueWithin30Days: Money.from(projection.dueWithin30DaysMinorUnits, supplier.currency).toDecimalString(),
-      availableCredit: zero,
-      receivedNotBilled: zero
+      unappliedCredit: Money.from(unappliedCredit, supplier.currency).toDecimalString(),
+      availableCredit: Money.from(unappliedCredit > netOwed ? unappliedCredit - netOwed : 0n, supplier.currency).toDecimalString(),
+      receivedNotBilled: Money.from(receivedNotBilledMinorUnits, supplier.currency).toDecimalString()
     };
+  }
+
+  /** A chronological statement of every bill, payment allocation, credit application, and refund, with a running balance. */
+  async statement(supplierId: string, asOf: Date = new Date()): Promise<SupplierStatement> {
+    const supplier = await database.supplier.findUnique({ where: { id: supplierId }, select: { id: true, currency: true } });
+    if (!supplier) throw new NotFoundException('Supplier not found');
+
+    const [bills, payments, creditApplications, refunds] = await Promise.all([
+      database.supplierBill.findMany({ where: { supplierId, status: { not: 'VOIDED' }, issueDate: { lte: asOf } }, include: { lines: true } }),
+      database.supplierPayment.findMany({ where: { supplierId, reversedAt: null, paidAt: { lte: asOf } }, include: { allocations: { where: { reversedAt: null } } } }),
+      database.supplierCreditApplication.findMany({ where: { supplierBill: { supplierId }, reversedAt: null, createdAt: { lte: asOf } }, include: { supplierBill: { select: { billNumber: true } } } }),
+      database.supplierRefund.findMany({ where: { supplierId, createdAt: { lte: asOf } } })
+    ]);
+
+    type RawLine = { type: 'BILL' | 'PAYMENT' | 'CREDIT_APPLICATION' | 'REFUND'; id: string; number: string; date: Date; description: string; debitMinorUnits: bigint; creditMinorUnits: bigint };
+    const rawLines: RawLine[] = [
+      ...bills.map((bill) => ({
+        type: 'BILL' as const,
+        id: bill.id,
+        number: bill.billNumber,
+        date: bill.issueDate,
+        description: `Bill ${bill.billNumber}`,
+        debitMinorUnits: bill.lines.reduce((sum, line) => sum + computeLineTotalMinorUnits(line.unitCostMinorUnits, line.quantity.toString()), 0n),
+        creditMinorUnits: 0n
+      })),
+      ...payments.map((payment) => ({
+        type: 'PAYMENT' as const,
+        id: payment.id,
+        number: payment.paymentNumber,
+        date: payment.paidAt,
+        description: `Payment ${payment.paymentNumber}`,
+        debitMinorUnits: 0n,
+        creditMinorUnits: payment.allocations.reduce((sum, allocation) => sum + allocation.amountMinorUnits, 0n)
+      })),
+      ...creditApplications.map((application) => ({
+        type: 'CREDIT_APPLICATION' as const,
+        id: application.id,
+        number: application.supplierBill.billNumber,
+        date: application.createdAt,
+        description: `Credit applied to ${application.supplierBill.billNumber}`,
+        debitMinorUnits: 0n,
+        creditMinorUnits: application.amountMinorUnits
+      })),
+      ...refunds.map((refund) => ({
+        type: 'REFUND' as const,
+        id: refund.id,
+        number: refund.refundNumber,
+        date: refund.createdAt,
+        description: `Refund ${refund.refundNumber}`,
+        debitMinorUnits: refund.amountMinorUnits,
+        creditMinorUnits: 0n
+      }))
+    ].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    let running = 0n;
+    const lines = rawLines.map((line) => {
+      if (line.type !== 'REFUND') running += line.debitMinorUnits - line.creditMinorUnits;
+      return {
+        type: line.type,
+        ref: { id: line.id, number: line.number },
+        date: line.date.toISOString(),
+        description: line.description,
+        debit: Money.from(line.debitMinorUnits, supplier.currency).toDecimalString(),
+        credit: Money.from(line.creditMinorUnits, supplier.currency).toDecimalString(),
+        runningBalance: Money.from(running, supplier.currency).toDecimalString()
+      };
+    });
+
+    return { supplierId, asOf: asOf.toISOString(), openingBalance: Money.from(0n, supplier.currency).toDecimalString(), closingBalance: Money.from(running, supplier.currency).toDecimalString(), lines };
+  }
+
+  private async loadBillsForAccount(supplierId: string) {
+    const bills = await database.supplierBill.findMany({
+      where: { supplierId, status: { not: 'VOIDED' } },
+      include: { lines: true, paymentAllocations: { where: { reversedAt: null } }, creditApplications: { where: { reversedAt: null } } }
+    });
+    return bills.map((bill) => ({
+      amountMinorUnits: bill.lines.reduce((sum, line) => sum + computeLineTotalMinorUnits(line.unitCostMinorUnits, line.quantity.toString()), 0n),
+      paidMinorUnits: bill.paymentAllocations.reduce((sum, allocation) => sum + allocation.amountMinorUnits, 0n),
+      creditedMinorUnits: bill.creditApplications.reduce((sum, application) => sum + application.amountMinorUnits, 0n),
+      dueDate: bill.dueDate
+    }));
+  }
+
+  private async sumUnappliedCredit(supplierId: string): Promise<bigint> {
+    const result = await database.supplierCredit.aggregate({ where: { supplierId }, _sum: { remainingMinorUnits: true } });
+    return result._sum.remainingMinorUnits ?? 0n;
+  }
+
+  /** Received-not-billed: PurchaseOrderLine.receivedQuantity - billedQuantity, priced at unit cost, across this supplier's non-terminal orders. */
+  private async sumReceivedNotBilled(supplierId: string): Promise<bigint> {
+    const lines = await database.purchaseOrderLine.findMany({
+      where: { purchaseOrder: { supplierId, status: { notIn: ['DRAFT', 'AWAITING_APPROVAL', 'CANCELLED'] } } }
+    });
+    return lines.reduce((sum, line) => {
+      const unbilled = Quantity.from(line.receivedQuantity.toString()).subtract(Quantity.from(line.billedQuantity.toString()));
+      if (!unbilled.isPositive()) return sum;
+      return sum + computeLineTotalMinorUnits(line.unitCostMinorUnits, unbilled.toDecimalString());
+    }, 0n);
   }
 
   private toUpdateData(input: UpdateSupplierInput): Prisma.SupplierUpdateInput {

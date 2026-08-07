@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { createSupplierSchema, listSuppliersQuerySchema, similarSupplierNamesQuerySchema, supplierAddressInputSchema, updateSupplierSchema } from '@tadpods/contracts';
+import { createSupplierSchema, listSuppliersQuerySchema, similarSupplierNamesQuerySchema, supplierAddressInputSchema, supplierStatementQuerySchema, updateSupplierSchema } from '@tadpods/contracts';
 import { RequirePermission } from '../../platform.decorators.js';
 import { SuppliersService } from './suppliers.service.js';
 
@@ -42,6 +42,13 @@ export class SuppliersController {
   @RequirePermission('suppliers.read')
   account(@Param('id') id: string) {
     return this.suppliers.account(id);
+  }
+
+  @Get(':id/statement')
+  @RequirePermission('suppliers.read')
+  statement(@Param('id') id: string, @Query() query: unknown) {
+    const { asOf } = supplierStatementQuerySchema.parse(query);
+    return this.suppliers.statement(id, asOf ? new Date(asOf) : new Date());
   }
 
   @Get(':id/addresses')
