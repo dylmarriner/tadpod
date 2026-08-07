@@ -10,7 +10,7 @@ type Customer = {
   paymentTermsDays: number; creditLimit: string; contactName: string | null; contactEmail: string | null; contactPhone: string | null;
   notes: string | null; active: boolean;
 };
-type CustomerAccount = { amountOwed: string; overdue: string; creditLimit: string; availableCredit: string };
+type CustomerAccount = { amountOwed: string; overdue: string; dueWithin7Days: string; dueWithin30Days: string; creditLimit: string; unappliedCredit: string; availableCredit: string };
 type SalesOrderSummary = { id: string; orderNumber: string; status: string; totalAmount: string; createdAt: string };
 
 export const metadata = { title: 'Customer detail' };
@@ -43,6 +43,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       </div>
       <div className="inline">
         <Link href={`/sales/orders/new?customerId=${customer.id}`}><Button variant="secondary">New sales order</Button></Link>
+        <Link href={`/sales/payments/new?customerId=${customer.id}`}><Button variant="secondary">Record payment</Button></Link>
+        <Link href={`/customers/${customer.id}/statement`}><Button variant="secondary">Statement</Button></Link>
         <CustomerArchiveToggle customerId={customer.id} active={customer.active} />
       </div>
     </header>
@@ -51,10 +53,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         {account ? <dl className="definition-list">
           <div><dt>Amount owed</dt><dd>{account.amountOwed}</dd></div>
           <div><dt>Overdue</dt><dd>{account.overdue}</dd></div>
+          <div><dt>Due within 7 days</dt><dd>{account.dueWithin7Days}</dd></div>
+          <div><dt>Due within 30 days</dt><dd>{account.dueWithin30Days}</dd></div>
+          <div><dt>Unapplied credit</dt><dd>{account.unappliedCredit}</dd></div>
           <div><dt>Credit limit</dt><dd>{account.creditLimit === '0.00' ? 'No limit' : account.creditLimit}</dd></div>
-          <div><dt>Available credit</dt><dd>{account.availableCredit === '0.00' ? 'No limit' : account.availableCredit}</dd></div>
+          <div><dt>Available credit</dt><dd>{account.creditLimit === '0.00' ? 'No limit' : account.availableCredit}</dd></div>
         </dl> : null}
-        <p className="muted">Customer invoices, payments, and statements are added in a later phase — the owed/overdue figures above read zero until then.</p>
       </Card>
       <Card title="Contact details">
         <dl className="definition-list">

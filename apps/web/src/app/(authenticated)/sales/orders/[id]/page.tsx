@@ -56,6 +56,9 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
     <div className="grid grid--2">
       <Card title="Actions">
         <SalesOrderActions id={order.id} status={order.status} />
+        {order.invoicingStatus !== 'INVOICED' && order.lines.some((line) => Number(line.deliveredQuantity) > 0) ? (
+          <p className="muted" style={{ marginTop: '0.75rem' }}><Link href={`/sales/orders/${order.id}/invoice`}>Create an invoice</Link> for delivered, uninvoiced quantity.</p>
+        ) : null}
       </Card>
       <Card title="Timeline">
         <dl className="definition-list">
