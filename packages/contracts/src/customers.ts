@@ -77,7 +77,38 @@ export const customerAccountSchema = z.object({
   asOf: z.string().datetime(),
   amountOwed: moneyAmountSchema,
   overdue: moneyAmountSchema,
+  dueWithin7Days: moneyAmountSchema,
+  dueWithin30Days: moneyAmountSchema,
   creditLimit: moneyAmountSchema,
+  unappliedCredit: moneyAmountSchema,
   availableCredit: moneyAmountSchema
 });
 export type CustomerAccount = z.infer<typeof customerAccountSchema>;
+
+/** A statement's closing balance must reproduce exactly: owed minus unapplied credit. */
+export const customerStatementQuerySchema = z.object({
+  asOf: z.string().datetime().optional()
+});
+export type CustomerStatementQuery = z.infer<typeof customerStatementQuerySchema>;
+
+const statementLineRefSchema = z.object({ id: z.string().uuid(), number: z.string() });
+
+export const customerStatementLineSchema = z.object({
+  type: z.enum(['INVOICE', 'PAYMENT', 'CREDIT_APPLICATION', 'REFUND']),
+  ref: statementLineRefSchema,
+  date: z.string().datetime(),
+  description: z.string(),
+  debit: moneyAmountSchema,
+  credit: moneyAmountSchema,
+  runningBalance: moneyAmountSchema
+});
+export type CustomerStatementLine = z.infer<typeof customerStatementLineSchema>;
+
+export const customerStatementSchema = z.object({
+  customerId: z.string().uuid(),
+  asOf: z.string().datetime(),
+  openingBalance: moneyAmountSchema,
+  closingBalance: moneyAmountSchema,
+  lines: z.array(customerStatementLineSchema).readonly()
+});
+export type CustomerStatement = z.infer<typeof customerStatementSchema>;

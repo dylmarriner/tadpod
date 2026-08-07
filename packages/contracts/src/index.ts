@@ -14,6 +14,10 @@ export * from './sales-orders.js';
 export * from './reservations.js';
 export * from './deliveries.js';
 export * from './backorders.js';
+export * from './customer-invoices.js';
+export * from './customer-payments.js';
+export * from './customer-credits.js';
+export * from './installments.js';
 
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
 export const passwordSchema = z.string().min(12).max(200);
