@@ -44,4 +44,11 @@ describe('TADPODS API health route', () => {
       service: 'TADPODS API'
     });
   });
+
+  it('reports ready once the database is reachable', async () => {
+    if (!app) throw new Error('TADPODS test application was not initialized');
+    const response = await app.inject({ method: 'GET', url: '/ready' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'ready', service: 'TADPODS API' });
+  });
 });

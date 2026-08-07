@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Req, Res, ServiceUnavailableException } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { database } from '@tadpods/database';
 import { brandSettingsSchema, emailSchema, loginRequestSchema, passwordSchema } from '@tadpods/contracts';
 import { CurrentUser, Public, RequirePermission, type AuthenticatedUser } from './platform.decorators.js';
 import { PlatformService, type RequestContext } from './platform.service.js';
@@ -30,10 +31,23 @@ function cookieOptions(secure: boolean, path = '/') {
 
 @Controller()
 export class HealthController {
+  /** Liveness: the process is up and can answer HTTP requests. Never checks dependencies. */
   @Get('health')
   @Public()
   health() {
     return { status: 'ok', service: 'TADPODS API', timestamp: new Date().toISOString() };
+  }
+
+  /** Readiness: the process can actually serve traffic — specifically, the database is reachable. */
+  @Get('ready')
+  @Public()
+  async ready() {
+    try {
+      await database.$queryRaw`SELECT 1`;
+      return { status: 'ready', service: 'TADPODS API', timestamp: new Date().toISOString() };
+    } catch (error) {
+      throw new ServiceUnavailableException({ status: 'not-ready', reason: error instanceof Error ? error.message : 'Database is unreachable' });
+    }
   }
 }
 

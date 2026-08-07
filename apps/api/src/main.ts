@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { loadEnvironment } from '@tadpods/config';
@@ -14,6 +15,14 @@ async function bootstrap(): Promise<void> {
   await app.register(cookie, { secret: environment.authSecret });
   await app.register(cors, { origin: environment.corsOrigin, credentials: true, methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'] });
   await app.register(helmet, { contentSecurityPolicy: false });
+  // A blunt but real defense against brute-forcing /auth/login or hammering posting endpoints:
+  // 600 requests/minute per IP across the whole API. Skips /health and /ready so orchestrator
+  // liveness/readiness probes are never throttled.
+  await app.register(rateLimit, {
+    max: 600,
+    timeWindow: '1 minute',
+    allowList: (request) => request.url === '/health' || request.url === '/ready'
+  });
   app.getHttpAdapter().getInstance().addHook('onRequest', (request, reply, done) => {
     reply.header('x-request-id', request.id);
     done();
