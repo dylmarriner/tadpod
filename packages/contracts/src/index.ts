@@ -18,6 +18,9 @@ export * from './customer-invoices.js';
 export * from './customer-payments.js';
 export * from './customer-credits.js';
 export * from './installments.js';
+export * from './supplier-bills.js';
+export * from './supplier-payments.js';
+export * from './supplier-credits.js';
 
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
 export const passwordSchema = z.string().min(12).max(200);

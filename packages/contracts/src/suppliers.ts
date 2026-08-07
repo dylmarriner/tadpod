@@ -66,12 +66,11 @@ export const similarSupplierSchema = z.object({ id: z.string().uuid(), code: z.s
 export type SimilarSupplier = z.infer<typeof similarSupplierSchema>;
 
 /**
- * The Task 1 account projection. `amountOwed`/`overdue`/`dueWithin7Days`/`dueWithin30Days`
- * are computed from posted supplier bills (none exist until Task 4, so they read zero until
- * then); `availableCredit` and `receivedNotBilled` are populated by Tasks 5-6 and Task 3
- * respectively, and also read zero until those tables exist — this mirrors how Phase 2 Task 8
- * exposed calculation interfaces that return zero for unavailable components rather than
- * inventing records.
+ * The accounts-payable account projection: `amountOwed`/`overdue`/`dueWithin7Days`/
+ * `dueWithin30Days` are computed from posted supplier bills, `unappliedCredit` from posted
+ * supplier credits, and `receivedNotBilled` from `PurchaseOrderLine.receivedQuantity -
+ * billedQuantity` across open orders — commitments and received-not-billed stay visibly
+ * separate from `amountOwed`, which only ever reflects posted bills.
  */
 export const supplierAccountSchema = z.object({
   supplierId: z.string().uuid(),
@@ -80,7 +79,35 @@ export const supplierAccountSchema = z.object({
   overdue: moneyAmountSchema,
   dueWithin7Days: moneyAmountSchema,
   dueWithin30Days: moneyAmountSchema,
+  unappliedCredit: moneyAmountSchema,
   availableCredit: moneyAmountSchema,
   receivedNotBilled: moneyAmountSchema
 });
 export type SupplierAccount = z.infer<typeof supplierAccountSchema>;
+
+export const supplierStatementQuerySchema = z.object({
+  asOf: z.string().datetime().optional()
+});
+export type SupplierStatementQuery = z.infer<typeof supplierStatementQuerySchema>;
+
+const supplierStatementLineRefSchema = z.object({ id: z.string().uuid(), number: z.string() });
+
+export const supplierStatementLineSchema = z.object({
+  type: z.enum(['BILL', 'PAYMENT', 'CREDIT_APPLICATION', 'REFUND']),
+  ref: supplierStatementLineRefSchema,
+  date: z.string().datetime(),
+  description: z.string(),
+  debit: moneyAmountSchema,
+  credit: moneyAmountSchema,
+  runningBalance: moneyAmountSchema
+});
+export type SupplierStatementLine = z.infer<typeof supplierStatementLineSchema>;
+
+export const supplierStatementSchema = z.object({
+  supplierId: z.string().uuid(),
+  asOf: z.string().datetime(),
+  openingBalance: moneyAmountSchema,
+  closingBalance: moneyAmountSchema,
+  lines: z.array(supplierStatementLineSchema).readonly()
+});
+export type SupplierStatement = z.infer<typeof supplierStatementSchema>;
