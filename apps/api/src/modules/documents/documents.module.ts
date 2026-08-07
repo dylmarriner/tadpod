@@ -9,6 +9,7 @@ import { CustomerCreditsModule } from '../customer-credits/customer-credits.modu
 import { SuppliersModule } from '../suppliers/suppliers.module.js';
 import { SupplierPaymentsModule } from '../supplier-payments/supplier-payments.module.js';
 import { SupplierCreditsModule } from '../supplier-credits/supplier-credits.module.js';
+import { SupplierBillsModule } from '../supplier-bills/supplier-bills.module.js';
 import { DocumentsController } from './documents.controller.js';
 import { DocumentsService } from './documents.service.js';
 
@@ -23,7 +24,8 @@ import { DocumentsService } from './documents.service.js';
     CustomerCreditsModule,
     SuppliersModule,
     SupplierPaymentsModule,
-    SupplierCreditsModule
+    SupplierCreditsModule,
+    SupplierBillsModule
   ],
   controllers: [DocumentsController],
   providers: [DocumentsService]

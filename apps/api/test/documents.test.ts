@@ -22,6 +22,7 @@ import { SupplierBillsService } from '../src/modules/supplier-bills/supplier-bil
 import { SupplierPaymentsService } from '../src/modules/supplier-payments/supplier-payments.service.js';
 import { SupplierCreditsService } from '../src/modules/supplier-credits/supplier-credits.service.js';
 import { SuppliersService } from '../src/modules/suppliers/suppliers.service.js';
+import { SupplierBillsService } from '../src/modules/supplier-bills/supplier-bills.service.js';
 import { DocumentsService } from '../src/modules/documents/documents.service.js';
 
 const posting = new StockPostingService();
@@ -34,7 +35,7 @@ const supplierBills = new SupplierBillsService();
 const supplierPayments = new SupplierPaymentsService();
 const supplierCredits = new SupplierCreditsService();
 const suppliersService = new SuppliersService();
-const documents = new DocumentsService(salesOrders, deliveries, purchaseOrders, goodsReceipts, invoices, undefined as never, undefined as never, suppliersService, supplierPayments, supplierCredits);
+const documents = new DocumentsService(salesOrders, deliveries, purchaseOrders, goodsReceipts, invoices, undefined as never, undefined as never, suppliersService, supplierPayments, supplierCredits, supplierBills);
 
 const salesActor = { id: '', permissions: ['sales.read', 'sales.write', 'sales.fulfil', 'sales.invoice'] as readonly string[] };
 const purchasingActor = { id: '', permissions: ['purchasing.read', 'purchasing.write', 'purchasing.approve', 'purchasing.bill'] as readonly string[] };
@@ -135,6 +136,29 @@ describe('documents', () => {
     const html = await documents.customerInvoice(invoice.id);
     expect(html).toContain(invoice.invoiceNumber);
     expect(html).toContain('100.00');
+    expect(html).toContain('UNPAID');
+  });
+
+  it('renders a supplier bill document with the outstanding balance', async () => {
+    const userId = await makeUser();
+    const supplierId = await makeSupplier();
+    const warehouseId = await makeWarehouse();
+    const suffix = randomUUID().slice(0, 8);
+    const product = await database.product.create({ data: { sku: `DOC-SBL-${suffix}`, name: `Supplier bill product ${suffix}`, unitOfMeasure: 'EA' } });
+    const actor = { ...purchasingActor, id: userId };
+
+    const order = await purchaseOrders.create(createPurchaseOrderSchema.parse({ supplierId, lines: [{ productId: product.id, unitCost: '10.00', orderedQuantity: '5' }] }), actor, ctx());
+    await purchaseOrders.confirm(order.id, actor, ctx());
+    await goodsReceipts.create(
+      createGoodsReceiptSchema.parse({ purchaseOrderId: order.id, warehouseId, idempotencyKey: randomUUID(), lines: [{ purchaseOrderLineId: order.lines[0]!.id, receivedQuantity: '5' }] }),
+      actor,
+      ctx()
+    );
+    const bill = await supplierBills.create(createSupplierBillSchema.parse({ purchaseOrderId: order.id }), actor, ctx());
+
+    const html = await documents.supplierBill(bill.id);
+    expect(html).toContain(bill.billNumber);
+    expect(html).toContain('50.00');
     expect(html).toContain('UNPAID');
   });
 

@@ -12,6 +12,7 @@ import { CustomerCreditsService } from '../customer-credits/customer-credits.ser
 import { SuppliersService } from '../suppliers/suppliers.service.js';
 import { SupplierPaymentsService } from '../supplier-payments/supplier-payments.service.js';
 import { SupplierCreditsService } from '../supplier-credits/supplier-credits.service.js';
+import { SupplierBillsService } from '../supplier-bills/supplier-bills.service.js';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -37,7 +38,8 @@ export class DocumentsService {
     private readonly customerCredits: CustomerCreditsService,
     private readonly suppliers: SuppliersService,
     private readonly supplierPayments: SupplierPaymentsService,
-    private readonly supplierCredits: SupplierCreditsService
+    private readonly supplierCredits: SupplierCreditsService,
+    private readonly supplierBills: SupplierBillsService
   ) {}
 
   private async brand(): Promise<DocumentBrand> {
@@ -189,6 +191,32 @@ export class DocumentsService {
         openingBalance: statement.openingBalance,
         closingBalance: statement.closingBalance,
         lines: statement.lines.map((line) => ({ date: formatDate(line.date), description: line.description, debit: line.debit, credit: line.credit, runningBalance: line.runningBalance }))
+      })
+    );
+  }
+
+  async supplierBill(id: string): Promise<string> {
+    const [bill, brand] = await Promise.all([this.supplierBills.get(id), this.brand()]);
+    return renderToStaticMarkup(
+      RecordDocument({
+        brand,
+        documentType: 'Bill',
+        documentNumber: bill.billNumber,
+        status: bill.displayStatus.replaceAll('_', ' '),
+        issuedDate: formatDate(bill.issueDate),
+        parties: [{ label: 'Supplier', name: bill.supplier.name, lines: [bill.supplier.code] }],
+        meta: [
+          { label: 'Due date', value: formatDate(bill.dueDate) },
+          { label: 'Purchase order', value: bill.purchaseOrder.orderNumber },
+          ...(bill.supplierReference ? [{ label: 'Supplier reference', value: bill.supplierReference }] : [])
+        ],
+        lines: bill.lines.map((line) => ({ description: `${line.product.sku} — ${line.product.name}`, quantity: line.quantity, unitPrice: line.unitCost, amount: line.lineTotal })),
+        totals: [
+          { label: 'Total', value: `${bill.totalAmount} ${bill.currency}` },
+          { label: 'Paid / credited', value: bill.appliedAmount },
+          { label: 'Balance due', value: bill.outstandingAmount, emphasis: true }
+        ],
+        notes: bill.notes
       })
     );
   }

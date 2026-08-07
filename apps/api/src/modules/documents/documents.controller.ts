@@ -54,6 +54,12 @@ export class DocumentsController {
     return html(response, await this.documents.customerStatement(id));
   }
 
+  @Get('supplier-bills/:id')
+  @RequirePermission('purchasing.read')
+  async supplierBill(@Param('id') id: string, @Res({ passthrough: true }) response: FastifyReply) {
+    return html(response, await this.documents.supplierBill(id));
+  }
+
   @Get('customer-refunds/:id')
   @RequirePermission('sales.read')
   async customerRefundConfirmation(@Param('id') id: string, @Res({ passthrough: true }) response: FastifyReply) {

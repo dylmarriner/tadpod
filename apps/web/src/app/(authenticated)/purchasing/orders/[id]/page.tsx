@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
 import { PurchaseOrderActions } from '../../../../../components/purchase-order-forms';
 import { serverApi } from '../../../../../lib/server-api';
@@ -48,6 +49,7 @@ export default async function PurchaseOrderDetailPage({ params }: { params: Prom
     <div className="grid grid--2">
       <Card title="Actions">
         <PurchaseOrderActions id={order.id} status={order.status} canApprove={canApprove} />
+        <p className="muted" style={{ marginTop: '0.75rem' }}><Link href={`/purchasing/orders/${order.id}/bill`}>Create a bill</Link> for received, unbilled quantity.</p>
       </Card>
       <Card title="Timeline">
         <dl className="definition-list">
