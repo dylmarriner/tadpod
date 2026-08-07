@@ -9,6 +9,9 @@ import { GoodsReceiptsService } from '../goods-receipts/goods-receipts.service.j
 import { CustomerInvoicesService } from '../customer-invoices/customer-invoices.service.js';
 import { CustomersService } from '../customers/customers.service.js';
 import { CustomerCreditsService } from '../customer-credits/customer-credits.service.js';
+import { SuppliersService } from '../suppliers/suppliers.service.js';
+import { SupplierPaymentsService } from '../supplier-payments/supplier-payments.service.js';
+import { SupplierCreditsService } from '../supplier-credits/supplier-credits.service.js';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -31,7 +34,10 @@ export class DocumentsService {
     private readonly goodsReceipts: GoodsReceiptsService,
     private readonly customerInvoices: CustomerInvoicesService,
     private readonly customers: CustomersService,
-    private readonly customerCredits: CustomerCreditsService
+    private readonly customerCredits: CustomerCreditsService,
+    private readonly suppliers: SuppliersService,
+    private readonly supplierPayments: SupplierPaymentsService,
+    private readonly supplierCredits: SupplierCreditsService
   ) {}
 
   private async brand(): Promise<DocumentBrand> {
@@ -183,6 +189,109 @@ export class DocumentsService {
         openingBalance: statement.openingBalance,
         closingBalance: statement.closingBalance,
         lines: statement.lines.map((line) => ({ date: formatDate(line.date), description: line.description, debit: line.debit, credit: line.credit, runningBalance: line.runningBalance }))
+      })
+    );
+  }
+
+  /** A remittance advice — what a supplier payment covered, one line per bill it allocated to. */
+  async supplierRemittance(paymentId: string): Promise<string> {
+    const [payment, brand] = await Promise.all([this.supplierPayments.get(paymentId), this.brand()]);
+    return renderToStaticMarkup(
+      RecordDocument({
+        brand,
+        documentType: 'Remittance Advice',
+        documentNumber: payment.paymentNumber,
+        status: payment.reversedAt ? 'REVERSED' : 'POSTED',
+        issuedDate: formatDate(payment.paidAt),
+        parties: [{ label: 'Supplier', name: payment.supplier.name, lines: [payment.supplier.code] }],
+        meta: [{ label: 'Method', value: payment.method }, ...(payment.reference ? [{ label: 'Reference', value: payment.reference }] : [])],
+        lines: payment.allocations.map((allocation) => ({ description: `Bill ${allocation.billNumber}`, amount: allocation.amount })),
+        lineColumns: ['Bill', '', '', 'Amount'],
+        totals: [
+          { label: 'Total paid', value: `${payment.amount} ${payment.currency}` },
+          ...(Number(payment.unappliedAmount) > 0 ? [{ label: 'Unapplied (credit)', value: payment.unappliedAmount }] : [])
+        ],
+        notes: payment.notes
+      })
+    );
+  }
+
+  async supplierCreditNote(id: string): Promise<string> {
+    const [credit, brand] = await Promise.all([this.supplierCredits.get(id), this.brand()]);
+    return renderToStaticMarkup(
+      RecordDocument({
+        brand,
+        documentType: 'Credit Note',
+        documentNumber: credit.creditNumber,
+        issuedDate: formatDate(credit.createdAt),
+        parties: [{ label: 'Supplier', name: credit.supplier.name, lines: [credit.supplier.code] }],
+        meta: [{ label: 'Source', value: credit.sourceType }],
+        lines:
+          credit.applications.length > 0
+            ? credit.applications.map((application) => ({ description: `Applied to ${application.billNumber}`, amount: application.amount }))
+            : [{ description: 'Unapplied credit', amount: credit.amount }],
+        lineColumns: ['Description', '', '', 'Amount'],
+        totals: [
+          { label: 'Original amount', value: credit.amount },
+          { label: 'Remaining', value: credit.remaining, emphasis: true }
+        ],
+        notes: credit.notes
+      })
+    );
+  }
+
+  async supplierStatement(supplierId: string): Promise<string> {
+    const [supplier, statement, brand] = await Promise.all([this.suppliers.get(supplierId), this.suppliers.statement(supplierId), this.brand()]);
+    return renderToStaticMarkup(
+      StatementDocument({
+        brand,
+        accountName: supplier.name,
+        accountReference: supplier.code,
+        asOf: formatDate(statement.asOf),
+        openingBalance: statement.openingBalance,
+        closingBalance: statement.closingBalance,
+        lines: statement.lines.map((line) => ({ date: formatDate(line.date), description: line.description, debit: line.debit, credit: line.credit, runningBalance: line.runningBalance }))
+      })
+    );
+  }
+
+  /** A refund confirmation, for either side of the ledger — the same shell, one line for the refund itself. */
+  async customerRefundConfirmation(id: string): Promise<string> {
+    const [refunds, brand] = await Promise.all([this.customerCredits.listRefunds(), this.brand()]);
+    const refund = refunds.find((candidate) => candidate.id === id);
+    if (!refund) throw new Error('Customer refund not found');
+    return renderToStaticMarkup(
+      RecordDocument({
+        brand,
+        documentType: 'Refund Confirmation',
+        documentNumber: refund.refundNumber,
+        issuedDate: formatDate(refund.createdAt),
+        parties: [{ label: 'Customer', name: refund.customer.name, lines: [refund.customer.code] }],
+        meta: [{ label: 'Method', value: refund.method }, ...(refund.reference ? [{ label: 'Reference', value: refund.reference }] : [])],
+        lines: [{ description: 'Refund of unapplied credit', amount: refund.amount }],
+        lineColumns: ['Description', '', '', 'Amount'],
+        totals: [{ label: 'Refunded', value: `${refund.amount} ${refund.currency}`, emphasis: true }],
+        notes: refund.notes
+      })
+    );
+  }
+
+  async supplierRefundConfirmation(id: string): Promise<string> {
+    const [refunds, brand] = await Promise.all([this.supplierCredits.listRefunds(), this.brand()]);
+    const refund = refunds.find((candidate) => candidate.id === id);
+    if (!refund) throw new Error('Supplier refund not found');
+    return renderToStaticMarkup(
+      RecordDocument({
+        brand,
+        documentType: 'Refund Confirmation',
+        documentNumber: refund.refundNumber,
+        issuedDate: formatDate(refund.createdAt),
+        parties: [{ label: 'Supplier', name: refund.supplier.name, lines: [refund.supplier.code] }],
+        meta: [{ label: 'Method', value: refund.method }, ...(refund.reference ? [{ label: 'Reference', value: refund.reference }] : [])],
+        lines: [{ description: 'Refund of unapplied credit', amount: refund.amount }],
+        lineColumns: ['Description', '', '', 'Amount'],
+        totals: [{ label: 'Refunded', value: `${refund.amount} ${refund.currency}`, emphasis: true }],
+        notes: refund.notes
       })
     );
   }

@@ -53,4 +53,34 @@ export class DocumentsController {
   async customerStatement(@Param('id') id: string, @Res({ passthrough: true }) response: FastifyReply) {
     return html(response, await this.documents.customerStatement(id));
   }
+
+  @Get('customer-refunds/:id')
+  @RequirePermission('sales.read')
+  async customerRefundConfirmation(@Param('id') id: string, @Res({ passthrough: true }) response: FastifyReply) {
+    return html(response, await this.documents.customerRefundConfirmation(id));
+  }
+
+  @Get('supplier-payments/:id')
+  @RequirePermission('purchasing.read')
+  async supplierRemittance(@Param('id') id: string, @Res({ passthrough: true }) response: FastifyReply) {
+    return html(response, await this.documents.supplierRemittance(id));
+  }
+
+  @Get('supplier-credits/:id')
+  @RequirePermission('purchasing.read')
+  async supplierCreditNote(@Param('id') id: string, @Res({ passthrough: true }) response: FastifyReply) {
+    return html(response, await this.documents.supplierCreditNote(id));
+  }
+
+  @Get('suppliers/:id/statement')
+  @RequirePermission('purchasing.read')
+  async supplierStatement(@Param('id') id: string, @Res({ passthrough: true }) response: FastifyReply) {
+    return html(response, await this.documents.supplierStatement(id));
+  }
+
+  @Get('supplier-refunds/:id')
+  @RequirePermission('purchasing.read')
+  async supplierRefundConfirmation(@Param('id') id: string, @Res({ passthrough: true }) response: FastifyReply) {
+    return html(response, await this.documents.supplierRefundConfirmation(id));
+  }
 }
