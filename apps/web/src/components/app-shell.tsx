@@ -10,10 +10,11 @@ type Brand = { displayName: string; primaryColour: string; accentColour: string 
 
 const sections = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Sales', enabled: false },
+  { label: 'Sales', href: '/sales/orders', permission: 'sales.read' },
+  { label: 'Backorders', href: '/sales/backorders', permission: 'sales.read' },
   { label: 'Purchasing', href: '/purchasing/orders', permission: 'purchasing.read' },
   { label: 'Inventory', href: '/inventory', permission: 'inventory.read' },
-  { label: 'Customers', enabled: false },
+  { label: 'Customers', href: '/customers', permission: 'customers.read' },
   { label: 'Suppliers', href: '/suppliers', permission: 'suppliers.read' },
   { label: 'Reports', enabled: false },
   { label: 'Administration', href: '/administration', permission: 'admin.users' }
