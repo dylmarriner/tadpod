@@ -437,12 +437,22 @@ Every template uses configurable TADPODS branding while retaining TADPODS defaul
 
 ### Integration Gate
 
-- [ ] Documents match source records and brand settings
-- [ ] Report totals reconcile to ledger data
-- [ ] Imports provide preview, validation, and idempotency
-- [ ] Backup and restore is tested
-- [ ] Production deployment is documented and repeatable
-- [ ] Full regression suite passes
+- [x] Documents match source records and brand settings
+- [x] Report totals reconcile to ledger data
+- [ ] Imports provide preview, validation, and idempotency — not built this pass (CSV import for products/customers/suppliers/opening balances, bank payment import)
+- [ ] Backup and restore is tested — not built this pass; needs an ops procedure against the deployed Postgres instance, not something this session's local dev database can meaningfully verify
+- [ ] Production deployment is documented and repeatable — Phase 1's Docker Compose stack exists but no dedicated runbook was written this pass
+- [x] Full regression suite passes — 186 domain tests, 5 documents-package tests, 140 API integration tests, all passing (apps/web has no automated test suite; verified manually via production build + HTTP smoke tests per phase)
+
+Delivered this pass: reports API (aged receivables, low-stock/reorder recommendations, sales by
+customer/product, tax summary, cash received) with CSV export; branded, brand-configurable
+printable HTML documents (sales orders, purchase orders, delivery notes, goods-received notes,
+customer invoices, credit notes, customer statements) using the browser's own "Print to PDF" in
+place of a PDF-generation dependency; a database-connectivity readiness probe (`GET /ready`,
+distinct from the existing `/health` liveness check); and global rate limiting. Supplier-financial
+reports, supplier remittances/statements, and refund-confirmation documents are not included —
+Phase 3 never built supplier bills, payments, or credits, so there is no ledger for them to read.
+Accessibility checks and performance baselines were not attempted this pass.
 
 ---
 
