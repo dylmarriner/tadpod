@@ -70,6 +70,13 @@ model User {
   purchaseOrdersCreated  PurchaseOrder[] @relation("PurchaseOrderCreatedBy")
   purchaseOrdersApproved PurchaseOrder[] @relation("PurchaseOrderApprovedBy")
   goodsReceiptsReceived  GoodsReceipt[]  @relation("GoodsReceiptReceivedBy")
+  salesOrdersCreated     SalesOrder[]    @relation("SalesOrderCreatedBy")
+  salesOrdersConfirmed   SalesOrder[]    @relation("SalesOrderConfirmedBy")
+  stockReservationsCreated StockReservation[] @relation("StockReservationCreatedBy")
+  deliveriesCreated      Delivery[]      @relation("DeliveryCreatedBy")
+  deliveriesPosted       Delivery[]      @relation("DeliveryPostedBy")
+  backordersCreated      Backorder[]     @relation("BackorderCreatedBy")
+  backorderAllocationsCreated BackorderAllocation[] @relation("BackorderAllocationCreatedBy")
 
   @@index([status, email])
 }
@@ -288,6 +295,7 @@ model Supplier {
   preferredFor     Product[]         @relation("ProductPreferredSupplier")
   addresses        SupplierAddress[]
   purchaseOrders   PurchaseOrder[]
+  backorders       Backorder[]
 
   @@index([active])
 }
@@ -335,6 +343,10 @@ model Product {
   stockCountLines        StockCountLine[]
   purchaseOrderLines     PurchaseOrderLine[]
   goodsReceiptLines      GoodsReceiptLine[]
+  salesOrderLines        SalesOrderLine[]
+  stockReservations      StockReservation[]
+  deliveryLines          DeliveryLine[]
+  backorderLines         BackorderLine[]
 
   @@index([categoryId])
   @@index([status])
@@ -375,6 +387,10 @@ model Warehouse {
   stockMovements StockMovement[]
   stockCounts    StockCount[]
   goodsReceipts  GoodsReceipt[]
+  salesOrders       SalesOrder[]
+  stockReservations StockReservation[]
+  deliveries        Delivery[]
+  backorders        Backorder[]
 
   @@index([status])
 }
@@ -509,6 +525,7 @@ model PurchaseOrder {
   approvedBy User?               @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   lines      PurchaseOrderLine[]
   goodsReceipts GoodsReceipt[]
+  backorders    Backorder[]
 
   @@index([supplierId, status])
   @@index([status])
@@ -529,6 +546,7 @@ model PurchaseOrderLine {
   purchaseOrder PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   product       Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
   receiptLines  GoodsReceiptLine[]
+  backorderLines BackorderLine[]
 
   @@index([purchaseOrderId])
   @@index([productId])
@@ -580,4 +598,350 @@ model GoodsReceiptLine {
 
   @@index([goodsReceiptId])
   @@index([purchaseOrderLineId])
+}
+
+// --- Phase 4: customers, sales orders, reservations, deliveries, backorders ---
+//
+// Phase 4 keeps confirmed sales demand, reservations, deliveries, and backorders as four
+// separate record types with four separate statuses, because they answer four different
+// questions:
+//
+//   * a `SalesOrderLine` records what a customer asked for (a commercial commitment),
+//   * a `StockReservation` records a soft claim on stock that has *not* moved,
+//   * a `Delivery` is the only thing that ever reduces stock, and does so exclusively
+//     through the Phase 2 `StockMovement` ledger, and
+//   * a `Backorder` records demand that could not be reserved and is waiting on supply.
+//
+// Nothing here stores a stock balance: available stock is always
+// `SUM(StockMovement.signedQuantity) - SUM(active StockReservation.quantity)`, derived on
+// read. Delivered quantity is left on the line for Phase 5 invoicing to consume; this phase
+// never writes an invoice or a receivable.
+
+enum CustomerAddressType {
+  BILLING
+  DELIVERY
+  GENERAL
+}
+
+enum SalesOrderStatus {
+  DRAFT
+  CONFIRMED
+  PARTIALLY_ALLOCATED
+  ALLOCATED
+  PARTIALLY_DELIVERED
+  DELIVERED
+  BACKORDERED
+  CANCELLED
+  CLOSED
+}
+
+/// Invoicing is tracked separately from fulfilment so Phase 5 can advance it without ever
+/// rewriting a fulfilment status. Phase 4 only ever leaves this at `NOT_INVOICED`.
+enum SalesOrderInvoicingStatus {
+  NOT_INVOICED
+  PARTIALLY_INVOICED
+  INVOICED
+}
+
+enum ReservationStatus {
+  ACTIVE
+  RELEASED
+  CONSUMED
+}
+
+enum DeliveryStatus {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+enum BackorderStatus {
+  PENDING_STOCK
+  PARTIALLY_AVAILABLE
+  READY_TO_FULFIL
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELLED
+}
+
+model Customer {
+  id                    String            @id @default(uuid()) @db.Uuid
+  code                  String            @unique @db.VarChar(40)
+  name                  String            @db.VarChar(160)
+  legalName             String?           @db.VarChar(200)
+  taxNumber             String?           @db.VarChar(40)
+  currency              String            @default("NZD") @db.Char(3)
+  paymentTermsDays      Int               @default(20)
+  creditLimitMinorUnits BigInt            @default(0)
+  contactName           String?           @db.VarChar(160)
+  contactEmail          String?           @db.VarChar(254)
+  contactPhone          String?           @db.VarChar(40)
+  notes                 String?           @db.VarChar(2000)
+  active                Boolean           @default(true)
+  createdAt             DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime          @updatedAt @db.Timestamptz(6)
+
+  addresses   CustomerAddress[]
+  salesOrders SalesOrder[]
+  backorders  Backorder[]
+
+  @@index([active])
+  @@index([name])
+}
+
+model CustomerAddress {
+  id           String              @id @default(uuid()) @db.Uuid
+  customerId   String              @db.Uuid
+  type         CustomerAddressType
+  addressLine1 String?             @db.VarChar(200)
+  addressLine2 String?             @db.VarChar(200)
+  city         String?             @db.VarChar(120)
+  region       String?             @db.VarChar(120)
+  postalCode   String?             @db.VarChar(20)
+  country      String?             @db.VarChar(120)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(6)
+  customer     Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, type])
+}
+
+model SalesOrder {
+  id                String                    @id @default(uuid()) @db.Uuid
+  orderNumber       String                    @unique @db.VarChar(40)
+  customerId        String                    @db.Uuid
+  warehouseId       String                    @db.Uuid
+  status            SalesOrderStatus          @default(DRAFT)
+  invoicingStatus   SalesOrderInvoicingStatus @default(NOT_INVOICED)
+  currency          String                    @db.Char(3)
+  priority          Int                       @default(5)
+  promisedDate      DateTime?                 @db.Timestamptz(6)
+  customerReference String?                   @db.VarChar(120)
+  notes             String?                   @db.VarChar(2000)
+  createdById       String                    @db.Uuid
+  confirmedById     String?                   @db.Uuid
+  confirmedAt       DateTime?                 @db.Timestamptz(6)
+  cancelledAt       DateTime?                 @db.Timestamptz(6)
+  closedAt          DateTime?                 @db.Timestamptz(6)
+  createdAt         DateTime                  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime                  @updatedAt @db.Timestamptz(6)
+
+  customer     Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  warehouse    Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  createdBy    User              @relation("SalesOrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  confirmedBy  User?             @relation("SalesOrderConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  lines        SalesOrderLine[]
+  reservations StockReservation[]
+  deliveries   Delivery[]
+  backorders   Backorder[]
+
+  @@index([customerId, status])
+  @@index([status])
+  @@index([warehouseId, status])
+  @@index([priority, promisedDate])
+  @@index([confirmedAt])
+}
+
+/// Every quantity on a sales-order line is a plain counter written by exactly one owner:
+/// `reservedQuantity` by `ReservationsService`, `deliveredQuantity` by `DeliveriesService`,
+/// `backorderedQuantity` by `BackordersService`, `cancelledQuantity` by `SalesOrdersService`,
+/// and `invoicedQuantity` by Phase 5. Outstanding is always derived on read, never stored.
+/// The `SalesOrderLine_quantity_balance` check constraint (see this phase's migration) is the
+/// database-level guarantee that delivered + cancelled + reserved + backordered can never
+/// exceed ordered, no matter which service writes last.
+model SalesOrderLine {
+  id                    String   @id @default(uuid()) @db.Uuid
+  salesOrderId          String   @db.Uuid
+  productId             String   @db.Uuid
+  unitPriceMinorUnits   BigInt
+  discountPercentBasis  Int      @default(0)
+  orderedQuantity       Decimal  @db.Decimal(18, 4)
+  reservedQuantity      Decimal  @default(0) @db.Decimal(18, 4)
+  deliveredQuantity     Decimal  @default(0) @db.Decimal(18, 4)
+  cancelledQuantity     Decimal  @default(0) @db.Decimal(18, 4)
+  backorderedQuantity   Decimal  @default(0) @db.Decimal(18, 4)
+  invoicedQuantity      Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @db.Timestamptz(6)
+
+  salesOrder    SalesOrder         @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product       Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  reservations  StockReservation[]
+  deliveryLines DeliveryLine[]
+  backorderLines BackorderLine[]
+
+  @@index([salesOrderId])
+  @@index([productId])
+}
+
+/// A reservation is a soft claim, never a stock movement — reserving stock changes no
+/// balance in the ledger, it only reduces what *other* demand may claim. Available stock is
+/// therefore `stock on hand - SUM(quantity) WHERE status = 'ACTIVE'`, and the invariant that
+/// active reservations never exceed stock on hand is enforced by `ReservationsService` under
+/// the same `pg_advisory_xact_lock((productId, warehouseId))` key `StockPostingService` uses,
+/// so a reservation and a posting can never race each other into oversubscribed stock.
+model StockReservation {
+  id               String            @id @default(uuid()) @db.Uuid
+  salesOrderId     String            @db.Uuid
+  salesOrderLineId String            @db.Uuid
+  productId        String            @db.Uuid
+  warehouseId      String            @db.Uuid
+  quantity         Decimal           @db.Decimal(18, 4)
+  status           ReservationStatus @default(ACTIVE)
+  method           String            @db.VarChar(40)
+  backorderLineId  String?           @db.Uuid
+  createdById      String            @db.Uuid
+  releasedAt       DateTime?         @db.Timestamptz(6)
+  consumedAt       DateTime?         @db.Timestamptz(6)
+  notes            String?           @db.VarChar(2000)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(6)
+
+  salesOrder     SalesOrder     @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  salesOrderLine SalesOrderLine @relation(fields: [salesOrderLineId], references: [id], onDelete: Cascade)
+  product        Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  warehouse      Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  createdBy      User           @relation("StockReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  backorderLine  BackorderLine? @relation(fields: [backorderLineId], references: [id], onDelete: SetNull)
+
+  @@index([productId, warehouseId, status])
+  @@index([salesOrderId, status])
+  @@index([salesOrderLineId, status])
+  @@index([backorderLineId])
+}
+
+/// A delivery is the only Phase 4 record that touches stock, and it does so exclusively
+/// through `StockPostingService`: each `DeliveryLine` posts one `SALES_DELIVERY` movement with
+/// `sourceType='delivery-line'` and `sourceLineId=<that line's id>`, so the ledger's own
+/// `(sourceType, sourceId, sourceLineId)` unique constraint — not application logic — is what
+/// makes it impossible for a delivery line to consume stock twice. A delivery is created as a
+/// `DRAFT` and posts separately, so quantities can be reviewed before any stock moves.
+model Delivery {
+  id             String         @id @default(uuid()) @db.Uuid
+  deliveryNumber String         @unique @db.VarChar(40)
+  salesOrderId   String         @db.Uuid
+  warehouseId    String         @db.Uuid
+  status         DeliveryStatus @default(DRAFT)
+  notes          String?        @db.VarChar(2000)
+  createdById    String         @db.Uuid
+  postedById     String?        @db.Uuid
+  postedAt       DateTime?      @db.Timestamptz(6)
+  reversedAt     DateTime?      @db.Timestamptz(6)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+
+  salesOrder SalesOrder     @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+  warehouse  Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  createdBy  User           @relation("DeliveryCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  postedBy   User?          @relation("DeliveryPostedBy", fields: [postedById], references: [id], onDelete: SetNull)
+  lines      DeliveryLine[]
+
+  @@index([salesOrderId, status])
+  @@index([warehouseId, status])
+  @@index([status])
+}
+
+model DeliveryLine {
+  id               String   @id @default(uuid()) @db.Uuid
+  deliveryId       String   @db.Uuid
+  salesOrderLineId String   @db.Uuid
+  productId        String   @db.Uuid
+  quantity         Decimal  @db.Decimal(18, 4)
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
+
+  delivery       Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  salesOrderLine SalesOrderLine @relation(fields: [salesOrderLineId], references: [id], onDelete: Restrict)
+  product        Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([deliveryId, salesOrderLineId])
+  @@index([deliveryId])
+  @@index([salesOrderLineId])
+}
+
+/// A backorder records confirmed demand that could not be reserved. It stays linked to the
+/// sales order and line it came from, and optionally to the supplier and purchase order raised
+/// to cover it, so every backordered quantity traces to both the customer promise and the
+/// supply that will satisfy it.
+model Backorder {
+  id              String          @id @default(uuid()) @db.Uuid
+  backorderNumber String          @unique @db.VarChar(40)
+  salesOrderId    String          @db.Uuid
+  customerId      String          @db.Uuid
+  warehouseId     String          @db.Uuid
+  status          BackorderStatus @default(PENDING_STOCK)
+  priority        Int             @default(5)
+  expectedDate    DateTime?       @db.Timestamptz(6)
+  promisedDate    DateTime?       @db.Timestamptz(6)
+  supplierId      String?         @db.Uuid
+  purchaseOrderId String?         @db.Uuid
+  notes           String?         @db.VarChar(2000)
+  createdById     String          @db.Uuid
+  cancelledAt     DateTime?       @db.Timestamptz(6)
+  fulfilledAt     DateTime?       @db.Timestamptz(6)
+  createdAt       DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @db.Timestamptz(6)
+
+  salesOrder    SalesOrder      @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+  customer      Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  warehouse     Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  supplier      Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  purchaseOrder PurchaseOrder?  @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  createdBy     User            @relation("BackorderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  lines         BackorderLine[]
+
+  @@index([salesOrderId])
+  @@index([customerId, status])
+  @@index([status, priority])
+  @@index([warehouseId, status])
+  @@index([expectedDate])
+  @@index([purchaseOrderId])
+}
+
+model BackorderLine {
+  id                  String   @id @default(uuid()) @db.Uuid
+  backorderId         String   @db.Uuid
+  salesOrderLineId    String   @db.Uuid
+  productId           String   @db.Uuid
+  quantity            Decimal  @db.Decimal(18, 4)
+  allocatedQuantity   Decimal  @default(0) @db.Decimal(18, 4)
+  fulfilledQuantity   Decimal  @default(0) @db.Decimal(18, 4)
+  cancelledQuantity   Decimal  @default(0) @db.Decimal(18, 4)
+  purchaseOrderLineId String?  @db.Uuid
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(6)
+
+  backorder         Backorder             @relation(fields: [backorderId], references: [id], onDelete: Cascade)
+  salesOrderLine    SalesOrderLine        @relation(fields: [salesOrderLineId], references: [id], onDelete: Restrict)
+  product           Product               @relation(fields: [productId], references: [id], onDelete: Restrict)
+  purchaseOrderLine PurchaseOrderLine?    @relation(fields: [purchaseOrderLineId], references: [id], onDelete: SetNull)
+  allocations       BackorderAllocation[]
+  reservations      StockReservation[]
+
+  @@unique([backorderId, salesOrderLineId])
+  @@index([backorderId])
+  @@index([salesOrderLineId])
+  @@index([productId])
+  @@index([purchaseOrderLineId])
+}
+
+/// One incoming-stock allocation to one backorder line. `(backorderLineId, sourceLineId)` is
+/// unique, so the same incoming quantity — identified by the goods-receipt line that brought
+/// it in — can never be allocated to the same backorder line twice, even under retries.
+model BackorderAllocation {
+  id              String   @id @default(uuid()) @db.Uuid
+  backorderLineId String   @db.Uuid
+  sourceType      String   @db.VarChar(60)
+  sourceId        String   @db.VarChar(120)
+  sourceLineId    String   @db.VarChar(120)
+  quantity        Decimal  @db.Decimal(18, 4)
+  reservationId   String?  @db.Uuid
+  createdById     String   @db.Uuid
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+
+  backorderLine BackorderLine @relation(fields: [backorderLineId], references: [id], onDelete: Cascade)
+  createdBy     User          @relation("BackorderAllocationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([backorderLineId, sourceLineId])
+  @@index([sourceType, sourceId])
 }

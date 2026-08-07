@@ -11,6 +11,8 @@ const permissions = [
   ['audit.read', 'View audit history'],
   ['sales.read', 'View sales records'],
   ['sales.write', 'Create and update sales records'],
+  ['sales.fulfil', 'Reserve stock, post deliveries, and manage backorders'],
+  ['sales.override-credit-limit', 'Confirm a sales order that exceeds the customer credit limit'],
   ['purchasing.read', 'View purchasing records'],
   ['purchasing.write', 'Create and update purchasing records'],
   ['purchasing.approve', 'Approve purchase orders above the approval threshold'],
@@ -37,12 +39,12 @@ const roles = [
 
 const rolePermissions: Record<string, string[]> = {
   administrator: ['*'],
-  sales: ['sales.read', 'sales.write', 'customers.read', 'customers.write', 'inventory.read'],
+  sales: ['sales.read', 'sales.write', 'sales.fulfil', 'customers.read', 'customers.write', 'inventory.read'],
   purchasing: ['purchasing.read', 'purchasing.write', 'suppliers.read', 'suppliers.write', 'inventory.read'],
-  warehouse: ['inventory.read', 'inventory.write', 'sales.read', 'purchasing.read'],
+  warehouse: ['inventory.read', 'inventory.write', 'sales.read', 'sales.fulfil', 'purchasing.read'],
   'accounts-receivable': ['customers.read', 'customers.write', 'sales.read', 'reports.read'],
   'accounts-payable': ['suppliers.read', 'suppliers.write', 'purchasing.read', 'purchasing.approve', 'reports.read'],
-  manager: ['sales.read', 'purchasing.read', 'purchasing.approve', 'inventory.read', 'customers.read', 'suppliers.read', 'reports.read', 'audit.read'],
+  manager: ['sales.read', 'sales.override-credit-limit', 'purchasing.read', 'purchasing.approve', 'inventory.read', 'customers.read', 'suppliers.read', 'reports.read', 'audit.read'],
   'read-only': ['sales.read', 'purchasing.read', 'inventory.read', 'customers.read', 'suppliers.read', 'reports.read']
 };
 
