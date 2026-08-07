@@ -53,3 +53,8 @@ export function computeSupplierAccount(bills: readonly SupplierBillForAccount[],
 export function netAccountsPayable(amountOwedMinorUnits: bigint, unappliedCreditMinorUnits: bigint): bigint {
   return amountOwedMinorUnits - unappliedCreditMinorUnits;
 }
+
+/** A supplier statement's closing balance must reproduce exactly: owed minus unapplied credit. */
+export function computeSupplierStatementBalance(amountOwedMinorUnits: bigint, unappliedCreditMinorUnits: bigint): bigint {
+  return netAccountsPayable(amountOwedMinorUnits, unappliedCreditMinorUnits);
+}

@@ -3,9 +3,30 @@ export { Quantity } from './quantity.js';
 export {
   computeSupplierAccount,
   netAccountsPayable,
+  computeSupplierStatementBalance,
   type SupplierAccountProjection,
   type SupplierBillForAccount
 } from './supplier-account.js';
+export {
+  SUPPLIER_BILL_STATUSES,
+  deriveSupplierBillDisplayStatus,
+  deriveSupplierBillStatus,
+  computeSupplierBillOutstandingMinorUnits,
+  computeUnbilledQuantity,
+  validateBillLineQuantity,
+  type SupplierBillStatus,
+  type SupplierBillDisplayStatus,
+  type BillableLine
+} from './supplier-bill.js';
+export {
+  planPaymentAllocation as planSupplierPaymentAllocation,
+  planCreditApplication as planSupplierCreditApplication,
+  validateManualAllocation as validateSupplierManualAllocation,
+  type OpenBillForAllocation,
+  type PaymentAllocationLine as SupplierPaymentAllocationLine,
+  type PaymentAllocationPlan as SupplierPaymentAllocationPlan,
+  type ManualAllocationInput as SupplierManualAllocationInput
+} from './supplier-payment.js';
 export {
   PURCHASE_ORDER_STATUSES,
   validateEditingTransition,

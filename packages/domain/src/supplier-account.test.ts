@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeSupplierAccount, netAccountsPayable } from './supplier-account.js';
+import { computeSupplierAccount, computeSupplierStatementBalance, netAccountsPayable } from './supplier-account.js';
 
 const asOf = new Date('2026-08-06T00:00:00Z');
 
@@ -66,5 +66,11 @@ describe('netAccountsPayable', () => {
 
   it('returns zero total when there is nothing owed and no credit', () => {
     expect(netAccountsPayable(0n, 0n)).toBe(0n);
+  });
+});
+
+describe('computeSupplierStatementBalance', () => {
+  it('matches netAccountsPayable exactly, reproducing the account balance', () => {
+    expect(computeSupplierStatementBalance(10_000n, 3_000n)).toBe(netAccountsPayable(10_000n, 3_000n));
   });
 });
