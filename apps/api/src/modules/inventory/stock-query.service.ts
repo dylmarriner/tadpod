@@ -49,6 +49,10 @@ export class StockQueryService {
     const [items, total] = await Promise.all([
       database.stockMovement.findMany({
         where,
+        include: {
+          product: { select: { sku: true, name: true } },
+          warehouse: { select: { code: true, name: true } }
+        },
         orderBy: [{ postedAt: 'desc' }, { id: 'desc' }],
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize

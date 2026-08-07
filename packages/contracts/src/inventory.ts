@@ -53,6 +53,8 @@ export const stockMovementSchema = z.object({
   id: z.string().uuid(),
   productId: z.string().uuid(),
   warehouseId: z.string().uuid(),
+  product: z.object({ sku: z.string(), name: z.string() }),
+  warehouse: z.object({ code: z.string(), name: z.string() }),
   movementType: stockMovementTypeSchema,
   signedQuantity: signedQuantityAmountSchema,
   postedAt: z.string().datetime(),

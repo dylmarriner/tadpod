@@ -216,11 +216,11 @@ Purchase orders are commitments, not payables. Received-not-billed values remain
 
 ### Integration Gate
 
-- [ ] Supplier account page reconciles to source records
-- [ ] Purchasing progress indicator is accurate
-- [ ] Goods receipts affect stock once only
-- [ ] Supplier payments generate remittance summaries
-- [ ] Purchase commitments and payables are visibly separate
+- [x] Supplier account page reconciles to source records
+- [x] Purchasing progress indicator is accurate
+- [x] Goods receipts affect stock once only
+- [x] Supplier payments generate remittance summaries
+- [x] Purchase commitments and payables are visibly separate
 
 ---
 
