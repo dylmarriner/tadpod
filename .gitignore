@@ -16,3 +16,7 @@ packages/database/prisma/dev.db
 # build artifacts
 .turbo/
 *.tsbuildinfo
+
+# database backups (scripts/backup.sh default output dir) — never commit a data dump
+/backups/
+*.dump
