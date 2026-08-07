@@ -40,11 +40,16 @@ export const listReservationsQuerySchema = z.object({
 });
 export type ListReservationsQuery = z.infer<typeof listReservationsQuerySchema>;
 
-/** Manually reserve a specific quantity against one sales order line ("reserve manually"). */
+/**
+ * Manually reserve a specific quantity against one sales order line ("reserve manually"). A
+ * reservation is a soft claim, not a stock movement (see `StockReservation` in the schema), so
+ * it carries no idempotency key: retrying this call is always safe — it either reserves more
+ * of what is still genuinely available, or is rejected by the within-stock check, never
+ * double-posts a ledger effect the way a stock movement or delivery would.
+ */
 export const createReservationSchema = z.object({
   salesOrderLineId: z.string().uuid(),
   quantity: positiveQuantitySchema,
-  idempotencyKey: z.string().trim().min(1).max(200),
   notes: z.string().trim().max(2000).nullable().optional()
 });
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
@@ -61,8 +66,7 @@ export type ReleaseReservationInput = z.infer<typeof releaseReservationSchema>;
 export const runReservationAllocationSchema = z.object({
   productId: z.string().uuid(),
   warehouseId: z.string().uuid(),
-  method: z.enum(['PRIORITY', 'PROMISED_DATE', 'OLDEST_FIRST']),
-  idempotencyKey: z.string().trim().min(1).max(200)
+  method: z.enum(['PRIORITY', 'PROMISED_DATE', 'OLDEST_FIRST'])
 });
 export type RunReservationAllocationInput = z.infer<typeof runReservationAllocationSchema>;
 

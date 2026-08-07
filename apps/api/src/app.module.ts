@@ -9,12 +9,29 @@ import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
+import { CustomersModule } from './modules/customers/customers.module.js';
+import { SalesOrdersModule } from './modules/sales-orders/sales-orders.module.js';
+import { ReservationsModule } from './modules/reservations/reservations.module.js';
+import { DeliveriesModule } from './modules/deliveries/deliveries.module.js';
+import { BackordersModule } from './modules/backorders/backorders.module.js';
 import { WarehousesModule } from './modules/warehouses/warehouses.module.js';
 import { PlatformService } from './platform.service.js';
 import { APP_ENVIRONMENT } from './platform.tokens.js';
 
 @Module({
-  imports: [InventoryModule, ProductsModule, WarehousesModule, SuppliersModule, PurchaseOrdersModule, GoodsReceiptsModule],
+  imports: [
+    InventoryModule,
+    ProductsModule,
+    WarehousesModule,
+    SuppliersModule,
+    PurchaseOrdersModule,
+    GoodsReceiptsModule,
+    CustomersModule,
+    SalesOrdersModule,
+    ReservationsModule,
+    DeliveriesModule,
+    BackordersModule
+  ],
   controllers: [HealthController, AuthController, BrandController, DashboardController, UsersController, RolesController, AuditController, SequenceController],
   providers: [
     PlatformService,

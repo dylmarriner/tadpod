@@ -5,6 +5,7 @@ import { deriveFulfillmentStatus, Quantity } from '@tadpods/domain';
 import { database, Prisma, withTransaction, type DatabaseTransaction, type Prisma as PrismaNamespace } from '@tadpods/database';
 import type { CreateGoodsReceiptInput, GoodsReceipt, GoodsReceiptLine, ListGoodsReceiptsQuery, ReverseGoodsReceiptInput } from '@tadpods/contracts';
 import { StockPostingService, type InventoryRequestContext, type PostingActor } from '../inventory/stock-posting.service.js';
+import { autoAllocateIncomingStock } from '../backorders/backorder-posting.js';
 
 const RECEIPT_SOURCE_TYPE = 'goods-receipt-line';
 const TOLERANCE_OVERRIDE_PERMISSION = 'purchasing.approve';
@@ -185,6 +186,17 @@ export class GoodsReceiptsService {
         await transaction.purchaseOrderLine.update({
           where: { id: line.purchaseOrderLineId },
           data: { receivedQuantity: { increment: line.accepted.toDecimalString() } }
+        });
+        // Phase 4's "automatic readiness update after goods receipt" rule: spread this
+        // line's accepted quantity across open backorders for the same product/warehouse.
+        await autoAllocateIncomingStock(transaction, {
+          productId: line.productId,
+          warehouseId: input.warehouseId,
+          quantity: line.accepted,
+          sourceType: RECEIPT_SOURCE_TYPE,
+          sourceId: receiptId,
+          sourceLineId: line.id,
+          createdById: actor.id
         });
       }
 
