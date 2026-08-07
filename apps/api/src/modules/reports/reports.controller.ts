@@ -40,6 +40,69 @@ export class ReportsController {
     return respond(response, format, 'aged-receivables', await this.reports.agedReceivables());
   }
 
+  @Get('aged-payables')
+  @RequirePermission('reports.read')
+  async agedPayables(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format } = reportQuerySchema.parse(query);
+    return respond(response, format, 'aged-payables', await this.reports.agedPayables());
+  }
+
+  @Get('received-not-billed')
+  @RequirePermission('reports.read')
+  async receivedNotBilled(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format } = reportQuerySchema.parse(query);
+    return respond(response, format, 'received-not-billed', await this.reports.receivedNotBilled());
+  }
+
+  @Get('purchase-commitments')
+  @RequirePermission('reports.read')
+  async purchaseCommitments(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format } = reportQuerySchema.parse(query);
+    return respond(response, format, 'purchase-commitments', await this.reports.purchaseCommitments());
+  }
+
+  @Get('supplier-bills')
+  @RequirePermission('reports.read')
+  async supplierBillRegister(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format, from, to } = reportQuerySchema.parse(query);
+    return respond(response, format, 'supplier-bills', await this.reports.supplierBillRegister(dateRange(from, to)));
+  }
+
+  @Get('supplier-payments')
+  @RequirePermission('reports.read')
+  async supplierPaymentRegister(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format, from, to } = reportQuerySchema.parse(query);
+    return respond(response, format, 'supplier-payments', await this.reports.supplierPaymentRegister(dateRange(from, to)));
+  }
+
+  @Get('supplier-credits')
+  @RequirePermission('reports.read')
+  async supplierCreditsRegister(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format } = reportQuerySchema.parse(query);
+    return respond(response, format, 'supplier-credits', await this.reports.supplierCreditsRegister());
+  }
+
+  @Get('customer-invoices')
+  @RequirePermission('reports.read')
+  async customerInvoiceRegister(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format, from, to } = reportQuerySchema.parse(query);
+    return respond(response, format, 'customer-invoices', await this.reports.customerInvoiceRegister(dateRange(from, to)));
+  }
+
+  @Get('customer-payments')
+  @RequirePermission('reports.read')
+  async customerPaymentRegister(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format, from, to } = reportQuerySchema.parse(query);
+    return respond(response, format, 'customer-payments', await this.reports.customerPaymentRegister(dateRange(from, to)));
+  }
+
+  @Get('customer-credits')
+  @RequirePermission('reports.read')
+  async customerCreditsRegister(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {
+    const { format } = reportQuerySchema.parse(query);
+    return respond(response, format, 'customer-credits', await this.reports.customerCreditsRegister());
+  }
+
   @Get('low-stock')
   @RequirePermission('reports.read')
   async lowStock(@Query() query: unknown, @Res({ passthrough: true }) response: FastifyReply) {

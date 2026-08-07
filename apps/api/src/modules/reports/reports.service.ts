@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { computeCustomerAccount, computeLineNetMinorUnits, computeReorderRecommendation, Money, Quantity } from '@tadpods/domain';
+import { computeCustomerAccount, computeLineNetMinorUnits, computeLineTotalMinorUnits, computeReorderRecommendation, computeSupplierAccount, Money, Quantity } from '@tadpods/domain';
 import { database } from '@tadpods/database';
 
 export type DateRangeQuery = { from?: Date; to?: Date };
@@ -7,11 +7,8 @@ export type DateRangeQuery = { from?: Date; to?: Date };
 /**
  * Reports (Phase 6). Every report reads posted records only — the same immutable ledger the
  * rest of the system reads — and reuses the domain calculations already proven correct
- * elsewhere (`computeCustomerAccount` for aging, `computeReorderRecommendation` for low stock)
- * rather than re-deriving the arithmetic here. Supplier-financial reports (aged payables, bill
- * and payment registers, supplier credits, received-not-billed, purchase commitments) are not
- * included: Phase 3 never built supplier bills, payments, or credits, so there is no ledger for
- * those reports to read — adding them now would mean inventing numbers.
+ * elsewhere (`computeCustomerAccount`/`computeSupplierAccount` for aging,
+ * `computeReorderRecommendation` for low stock) rather than re-deriving the arithmetic here.
  */
 @Injectable()
 export class ReportsService {
@@ -45,6 +42,189 @@ export class ReportsService {
       })
     );
     return rows.filter((row) => Number(row.amountOwed) > 0);
+  }
+
+  /** Aged payables across every active supplier, not just one — the cross-supplier view `/suppliers/:id/account` can't give. */
+  async agedPayables(asOf: Date = new Date()) {
+    const suppliers = await database.supplier.findMany({ where: { active: true }, orderBy: [{ name: 'asc' }] });
+    const rows = await Promise.all(
+      suppliers.map(async (supplier) => {
+        const bills = await database.supplierBill.findMany({
+          where: { supplierId: supplier.id, status: { not: 'VOIDED' } },
+          include: { lines: true, paymentAllocations: { where: { reversedAt: null } }, creditApplications: { where: { reversedAt: null } } }
+        });
+        const forAccount = bills.map((bill) => ({
+          amountMinorUnits: bill.lines.reduce((sum, line) => sum + computeLineTotalMinorUnits(line.unitCostMinorUnits, line.quantity.toString()), 0n),
+          paidMinorUnits: bill.paymentAllocations.reduce((sum, allocation) => sum + allocation.amountMinorUnits, 0n),
+          creditedMinorUnits: bill.creditApplications.reduce((sum, application) => sum + application.amountMinorUnits, 0n),
+          dueDate: bill.dueDate
+        }));
+        const projection = computeSupplierAccount(forAccount, asOf);
+        return {
+          supplierId: supplier.id,
+          supplierCode: supplier.code,
+          supplierName: supplier.name,
+          currency: supplier.currency,
+          amountOwed: Money.from(projection.amountOwedMinorUnits, supplier.currency).toDecimalString(),
+          overdue: Money.from(projection.overdueMinorUnits, supplier.currency).toDecimalString(),
+          dueWithin7Days: Money.from(projection.dueWithin7DaysMinorUnits, supplier.currency).toDecimalString(),
+          dueWithin30Days: Money.from(projection.dueWithin30DaysMinorUnits, supplier.currency).toDecimalString()
+        };
+      })
+    );
+    return rows.filter((row) => Number(row.amountOwed) > 0);
+  }
+
+  /** Received-but-unbilled value, per supplier, across every non-terminal purchase order. */
+  async receivedNotBilled() {
+    const lines = await database.purchaseOrderLine.findMany({
+      where: { purchaseOrder: { status: { notIn: ['DRAFT', 'AWAITING_APPROVAL', 'CANCELLED'] } } },
+      include: { purchaseOrder: { include: { supplier: { select: { id: true, code: true, name: true, currency: true } } } }, product: { select: { sku: true, name: true } } }
+    });
+    const rows = lines
+      .map((line) => {
+        const unbilled = Quantity.from(line.receivedQuantity.toString()).subtract(Quantity.from(line.billedQuantity.toString()));
+        if (!unbilled.isPositive()) return null;
+        return {
+          supplierId: line.purchaseOrder.supplier.id,
+          supplierCode: line.purchaseOrder.supplier.code,
+          supplierName: line.purchaseOrder.supplier.name,
+          orderNumber: line.purchaseOrder.orderNumber,
+          sku: line.product.sku,
+          productName: line.product.name,
+          unbilledQuantity: unbilled.toDecimalString(),
+          unbilledAmount: Money.from(computeLineTotalMinorUnits(line.unitCostMinorUnits, unbilled.toDecimalString()), line.purchaseOrder.supplier.currency).toDecimalString()
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+    return rows;
+  }
+
+  /** Confirmed purchase orders' outstanding (not-yet-received) commitment value, per supplier. */
+  async purchaseCommitments() {
+    const lines = await database.purchaseOrderLine.findMany({
+      where: { purchaseOrder: { status: { in: ['CONFIRMED', 'PARTIALLY_RECEIVED'] } } },
+      include: { purchaseOrder: { include: { supplier: { select: { id: true, code: true, name: true, currency: true } } } }, product: { select: { sku: true, name: true } } }
+    });
+    const rows = lines
+      .map((line) => {
+        const outstanding = Quantity.from(line.orderedQuantity.toString()).subtract(Quantity.from(line.receivedQuantity.toString()));
+        if (!outstanding.isPositive()) return null;
+        return {
+          supplierId: line.purchaseOrder.supplier.id,
+          supplierCode: line.purchaseOrder.supplier.code,
+          supplierName: line.purchaseOrder.supplier.name,
+          orderNumber: line.purchaseOrder.orderNumber,
+          sku: line.product.sku,
+          productName: line.product.name,
+          outstandingQuantity: outstanding.toDecimalString(),
+          commitmentAmount: Money.from(computeLineTotalMinorUnits(line.unitCostMinorUnits, outstanding.toDecimalString()), line.purchaseOrder.supplier.currency).toDecimalString()
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+    return rows;
+  }
+
+  /** Every posted supplier bill, optionally within a date range — the bill register. */
+  async supplierBillRegister(range: DateRangeQuery) {
+    const bills = await database.supplierBill.findMany({
+      where: { status: { not: 'VOIDED' }, ...this.dateFilter('issueDate', range) },
+      include: { supplier: { select: { code: true, name: true } }, lines: true },
+      orderBy: [{ issueDate: 'asc' }]
+    });
+    return bills.map((bill) => ({
+      billNumber: bill.billNumber,
+      supplierCode: bill.supplier.code,
+      supplierName: bill.supplier.name,
+      status: bill.status,
+      issueDate: bill.issueDate.toISOString(),
+      dueDate: bill.dueDate.toISOString(),
+      totalAmount: Money.from(bill.lines.reduce((sum, line) => sum + computeLineTotalMinorUnits(line.unitCostMinorUnits, line.quantity.toString()), 0n), bill.currency).toDecimalString()
+    }));
+  }
+
+  /** Every posted supplier payment, optionally within a date range — the payment register. */
+  async supplierPaymentRegister(range: DateRangeQuery) {
+    const payments = await database.supplierPayment.findMany({
+      where: { reversedAt: null, ...this.dateFilter('paidAt', range) },
+      include: { supplier: { select: { code: true, name: true } } },
+      orderBy: [{ paidAt: 'asc' }]
+    });
+    return payments.map((payment) => ({
+      paymentNumber: payment.paymentNumber,
+      supplierCode: payment.supplier.code,
+      supplierName: payment.supplier.name,
+      method: payment.method,
+      paidAt: payment.paidAt.toISOString(),
+      amount: Money.from(payment.amountMinorUnits, payment.currency).toDecimalString()
+    }));
+  }
+
+  /** Every supplier credit and its remaining balance. */
+  async supplierCreditsRegister() {
+    const credits = await database.supplierCredit.findMany({
+      include: { supplier: { select: { code: true, name: true } } },
+      orderBy: [{ createdAt: 'asc' }]
+    });
+    return credits.map((credit) => ({
+      creditNumber: credit.creditNumber,
+      supplierCode: credit.supplier.code,
+      supplierName: credit.supplier.name,
+      sourceType: credit.sourceType,
+      amount: Money.from(credit.amountMinorUnits, credit.currency).toDecimalString(),
+      remaining: Money.from(credit.remainingMinorUnits, credit.currency).toDecimalString()
+    }));
+  }
+
+  /** Every posted customer invoice, optionally within a date range — the invoice register. */
+  async customerInvoiceRegister(range: DateRangeQuery) {
+    const invoices = await database.customerInvoice.findMany({
+      where: { status: { not: 'VOIDED' }, ...this.dateFilter('issueDate', range) },
+      include: { customer: { select: { code: true, name: true } }, lines: true },
+      orderBy: [{ issueDate: 'asc' }]
+    });
+    return invoices.map((invoice) => ({
+      invoiceNumber: invoice.invoiceNumber,
+      customerCode: invoice.customer.code,
+      customerName: invoice.customer.name,
+      status: invoice.status,
+      issueDate: invoice.issueDate.toISOString(),
+      dueDate: invoice.dueDate.toISOString(),
+      totalAmount: Money.from(invoice.lines.reduce((sum, line) => sum + computeLineNetMinorUnits(line.unitPriceMinorUnits, line.quantity.toString(), line.discountPercentBasis), 0n), invoice.currency).toDecimalString()
+    }));
+  }
+
+  /** Every posted customer payment, optionally within a date range — the payment register. */
+  async customerPaymentRegister(range: DateRangeQuery) {
+    const payments = await database.customerPayment.findMany({
+      where: { reversedAt: null, ...this.dateFilter('receivedAt', range) },
+      include: { customer: { select: { code: true, name: true } } },
+      orderBy: [{ receivedAt: 'asc' }]
+    });
+    return payments.map((payment) => ({
+      paymentNumber: payment.paymentNumber,
+      customerCode: payment.customer.code,
+      customerName: payment.customer.name,
+      method: payment.method,
+      receivedAt: payment.receivedAt.toISOString(),
+      amount: Money.from(payment.amountMinorUnits, payment.currency).toDecimalString()
+    }));
+  }
+
+  /** Every customer credit and its remaining balance. */
+  async customerCreditsRegister() {
+    const credits = await database.customerCredit.findMany({
+      include: { customer: { select: { code: true, name: true } } },
+      orderBy: [{ createdAt: 'asc' }]
+    });
+    return credits.map((credit) => ({
+      creditNumber: credit.creditNumber,
+      customerCode: credit.customer.code,
+      customerName: credit.customer.name,
+      sourceType: credit.sourceType,
+      amount: Money.from(credit.amountMinorUnits, credit.currency).toDecimalString(),
+      remaining: Money.from(credit.remainingMinorUnits, credit.currency).toDecimalString()
+    }));
   }
 
   /** Low stock and reorder recommendations across every active product. */

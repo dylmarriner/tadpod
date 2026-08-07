@@ -1,12 +1,25 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { database } from '@tadpods/database';
-import { confirmSalesOrderSchema, createCustomerInvoiceSchema, createCustomerPaymentSchema, createDeliverySchema, createSalesOrderSchema, postDeliverySchema } from '@tadpods/contracts';
+import {
+  confirmSalesOrderSchema,
+  createCustomerInvoiceSchema,
+  createCustomerPaymentSchema,
+  createDeliverySchema,
+  createGoodsReceiptSchema,
+  createPurchaseOrderSchema,
+  createSalesOrderSchema,
+  createSupplierBillSchema,
+  postDeliverySchema
+} from '@tadpods/contracts';
 import { StockPostingService } from '../src/modules/inventory/stock-posting.service.js';
 import { SalesOrdersService } from '../src/modules/sales-orders/sales-orders.service.js';
 import { DeliveriesService } from '../src/modules/deliveries/deliveries.service.js';
 import { CustomerInvoicesService } from '../src/modules/customer-invoices/customer-invoices.service.js';
 import { CustomerPaymentsService } from '../src/modules/customer-payments/customer-payments.service.js';
+import { PurchaseOrdersService } from '../src/modules/purchase-orders/purchase-orders.service.js';
+import { GoodsReceiptsService } from '../src/modules/goods-receipts/goods-receipts.service.js';
+import { SupplierBillsService } from '../src/modules/supplier-bills/supplier-bills.service.js';
 import { ReportsService } from '../src/modules/reports/reports.service.js';
 import { toCsv } from '../src/modules/reports/csv.js';
 
@@ -15,9 +28,13 @@ const salesOrders = new SalesOrdersService();
 const deliveries = new DeliveriesService(posting);
 const invoices = new CustomerInvoicesService();
 const payments = new CustomerPaymentsService();
+const purchaseOrders = new PurchaseOrdersService();
+const goodsReceipts = new GoodsReceiptsService(posting);
+const supplierBills = new SupplierBillsService();
 const reports = new ReportsService();
 
 const salesActor = { id: '', permissions: ['sales.read', 'sales.write', 'sales.fulfil', 'sales.invoice'] as readonly string[] };
+const purchasingActor = { id: '', permissions: ['purchasing.read', 'purchasing.write', 'purchasing.approve', 'purchasing.bill'] as readonly string[] };
 
 function ctx() {
   return { requestId: randomUUID() };
@@ -39,6 +56,12 @@ async function makeWarehouse(): Promise<string> {
   const suffix = randomUUID().slice(0, 8);
   const warehouse = await database.warehouse.create({ data: { code: `RWH-${suffix}`.slice(0, 20), name: `Reports test warehouse ${suffix}`, status: 'ACTIVE' } });
   return warehouse.id;
+}
+
+async function makeSupplier(): Promise<string> {
+  const suffix = randomUUID().slice(0, 8);
+  const supplier = await database.supplier.create({ data: { code: `RPT-SUP-${suffix}`, name: `Reports test supplier ${suffix}` } });
+  return supplier.id;
 }
 
 async function postOpeningStock(actorId: string, productId: string, warehouseId: string, quantity: string): Promise<void> {
@@ -165,6 +188,65 @@ describe('reports', () => {
 
     const rows = await reports.agedReceivables();
     expect(rows.find((entry) => entry.customerId === customerId)).toBeUndefined();
+  });
+});
+
+describe('supplier reports', () => {
+  afterAll(async () => {
+    await database.$disconnect();
+  });
+
+  it('reports aged payables reconciling to the supplier account balance', async () => {
+    const userId = await makeUser();
+    const supplierId = await makeSupplier();
+    const warehouseId = await makeWarehouse();
+    const suffix = randomUUID().slice(0, 8);
+    const product = await database.product.create({ data: { sku: `RPT-BPROD-${suffix}`, name: `Reports test bill product ${suffix}`, unitOfMeasure: 'EA' } });
+    const actor = { ...purchasingActor, id: userId };
+
+    const order = await purchaseOrders.create(createPurchaseOrderSchema.parse({ supplierId, lines: [{ productId: product.id, unitCost: '10.00', orderedQuantity: '10' }] }), actor, ctx());
+    await purchaseOrders.confirm(order.id, actor, ctx());
+    await goodsReceipts.create(createGoodsReceiptSchema.parse({ purchaseOrderId: order.id, warehouseId, idempotencyKey: randomUUID(), lines: [{ purchaseOrderLineId: order.lines[0]!.id, receivedQuantity: '10' }] }), actor, ctx());
+    await supplierBills.create(createSupplierBillSchema.parse({ purchaseOrderId: order.id }), actor, ctx());
+
+    const rows = await reports.agedPayables();
+    const row = rows.find((entry) => entry.supplierId === supplierId);
+    expect(row).toBeDefined();
+    expect(row?.amountOwed).toBe('100.00');
+  });
+
+  it('reports received-not-billed for a confirmed and received order with no bill yet', async () => {
+    const userId = await makeUser();
+    const supplierId = await makeSupplier();
+    const warehouseId = await makeWarehouse();
+    const suffix = randomUUID().slice(0, 8);
+    const product = await database.product.create({ data: { sku: `RPT-RNB-${suffix}`, name: `Reports test RNB product ${suffix}`, unitOfMeasure: 'EA' } });
+    const actor = { ...purchasingActor, id: userId };
+
+    const order = await purchaseOrders.create(createPurchaseOrderSchema.parse({ supplierId, lines: [{ productId: product.id, unitCost: '10.00', orderedQuantity: '10' }] }), actor, ctx());
+    await purchaseOrders.confirm(order.id, actor, ctx());
+    await goodsReceipts.create(createGoodsReceiptSchema.parse({ purchaseOrderId: order.id, warehouseId, idempotencyKey: randomUUID(), lines: [{ purchaseOrderLineId: order.lines[0]!.id, receivedQuantity: '10' }] }), actor, ctx());
+
+    const rows = await reports.receivedNotBilled();
+    const row = rows.find((entry) => entry.supplierId === supplierId);
+    expect(row).toBeDefined();
+    expect(row?.unbilledAmount).toBe('100.00');
+  });
+
+  it('reports purchase commitments for a confirmed but not-yet-received order', async () => {
+    const userId = await makeUser();
+    const supplierId = await makeSupplier();
+    const suffix = randomUUID().slice(0, 8);
+    const product = await database.product.create({ data: { sku: `RPT-COMMIT-${suffix}`, name: `Reports test commitment product ${suffix}`, unitOfMeasure: 'EA' } });
+    const actor = { ...purchasingActor, id: userId };
+
+    const order = await purchaseOrders.create(createPurchaseOrderSchema.parse({ supplierId, lines: [{ productId: product.id, unitCost: '20.00', orderedQuantity: '5' }] }), actor, ctx());
+    await purchaseOrders.confirm(order.id, actor, ctx());
+
+    const rows = await reports.purchaseCommitments();
+    const row = rows.find((entry) => entry.supplierId === supplierId);
+    expect(row).toBeDefined();
+    expect(row?.commitmentAmount).toBe('100.00');
   });
 });
 
