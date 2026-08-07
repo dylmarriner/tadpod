@@ -365,11 +365,11 @@ Reservation changes must be transactional and visible from both product and orde
 
 ### Integration Gate
 
-- [ ] Customer account timeline reconciles to invoices, payments, allocations, credits, and refunds
-- [ ] Statements reproduce the account balance exactly
-- [ ] Payment allocation preview is clear before posting
-- [ ] Posted financial records cannot be edited
-- [ ] Reversals retain the full audit trail
+- [x] Customer account timeline reconciles to invoices, payments, allocations, credits, and refunds
+- [x] Statements reproduce the account balance exactly
+- [x] Payment allocation preview is clear before posting
+- [x] Posted financial records cannot be edited
+- [x] Reversals retain the full audit trail
 
 ---
 
