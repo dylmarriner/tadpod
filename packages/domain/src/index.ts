@@ -129,6 +129,8 @@ export {
   type InstallmentScheduleLineInput
 } from './installments.js';
 
+export { computeReorderRecommendation, type ReorderInput, type ReorderRecommendation } from './reorder.js';
+
 export type Brand<T, Name extends string> = T & { readonly __brand: Name };
 export type UserId = Brand<string, 'UserId'>;
 export type RoleId = Brand<string, 'RoleId'>;
