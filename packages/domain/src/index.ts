@@ -30,6 +30,67 @@ export {
   type ReversalMovementInput
 } from './inventory.js';
 
+export {
+  SALES_ORDER_STATUSES,
+  SALES_ORDER_INVOICING_STATUSES,
+  validateSalesOrderEditingTransition,
+  validateLineQuantityBalance,
+  computeSalesOrderLineProjection,
+  deriveSalesOrderFulfilmentStatus,
+  DISCOUNT_BASIS_SCALE,
+  computeLineGrossMinorUnits,
+  computeLineNetMinorUnits,
+  computeSalesOrderTotalMinorUnits,
+  exceedsCreditLimit,
+  type SalesOrderStatus,
+  type SalesOrderInvoicingStatus,
+  type SalesOrderLineQuantities,
+  type SalesOrderLineProjection
+} from './sales-order.js';
+export {
+  RESERVATION_METHODS,
+  computeAvailableStock,
+  computeAvailableToPromise,
+  planReservation,
+  orderDemands,
+  planAllocationRun,
+  validateReservationWithinStock,
+  type ReservationMethod,
+  type AvailableToPromiseInput,
+  type ReservationPlan,
+  type ReservationDemand,
+  type ReservationAllocation
+} from './reservations.js';
+export {
+  BACKORDER_STATUSES,
+  computeBackorderQuantity,
+  computeBackorderOpenQuantity,
+  deriveBackorderStatus,
+  validateBackorderQuantityChange,
+  planIncomingAllocation,
+  suggestPurchaseQuantity,
+  type BackorderStatus,
+  type BackorderLineQuantities,
+  type IncomingAllocationDemand,
+  type IncomingAllocation
+} from './backorders.js';
+export {
+  DELIVERY_STATUSES,
+  DELIVERY_MODES,
+  DELIVERY_SOURCE_TYPE,
+  computeOutstandingDeliveryQuantity,
+  planDeliveryLines,
+  validateDeliveryQuantity,
+  planReservationConsumption,
+  buildDeliveryMovements,
+  type DeliveryStatus,
+  type DeliveryMode,
+  type DeliverableLine,
+  type PlannedDeliveryLine,
+  type ReservationConsumption,
+  type DeliveryMovementInput
+} from './delivery.js';
+
 export type Brand<T, Name extends string> = T & { readonly __brand: Name };
 export type UserId = Brand<string, 'UserId'>;
 export type RoleId = Brand<string, 'RoleId'>;
