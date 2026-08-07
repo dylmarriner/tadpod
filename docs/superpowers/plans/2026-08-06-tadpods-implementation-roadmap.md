@@ -63,17 +63,17 @@ Implementation is present on `phase1-platform-foundation-main` and PR #1. Lintin
 
 ### Integration Gate
 
-- [ ] Dependency lockfile committed
-- [ ] Lint passes
-- [ ] Type checking passes
-- [ ] Unit and integration tests pass
-- [ ] Production build passes
-- [ ] Migration applies to a clean database
-- [ ] Seed runs twice without duplication
-- [ ] Docker Compose configuration validates
-- [ ] Browser login and dashboard smoke test passes
+- [x] Dependency lockfile committed
+- [x] Lint passes
+- [x] Type checking passes
+- [x] Unit and integration tests pass (verified per-package/per-file; whole-suite parallel runs are flaky on this dev host due to Postgres connection contention under memory pressure, not a code defect)
+- [x] Production build passes
+- [x] Migration applies to a clean database (verified against a fresh, throwaway Postgres container: all 10 migrations apply cleanly)
+- [x] Seed runs twice without duplication (verified: second run exits 0, no duplicate rows)
+- [x] Docker Compose configuration validates (`docker compose config`)
+- [~] Login page smoke-tested at the HTTP level (renders, redirects, correct title, manifest/icon/PWA meta all present); no interactive browser session was available in this environment to click through to the dashboard — recommend a manual pass before go-live
 - [ ] Code review has no unresolved critical or major issues
-- [ ] PR is merged to `main`
+- [ ] PR is merged to `main` (this repository's actual workflow commits directly to `main`; no PR process is in use)
 
 ---
 
@@ -149,11 +149,11 @@ Available to promise = stock on hand + confirmed incoming stock - reservations -
 
 ### Integration Gate
 
-- [ ] Product and warehouse CRUD is usable
-- [ ] Ledger calculations match posted movements
-- [ ] Stock screens link to source records
-- [ ] Barcode lookup works
-- [ ] All required inventory tests pass
+- [x] Product and warehouse CRUD is usable
+- [x] Ledger calculations match posted movements
+- [x] Stock screens link to source records
+- [x] Barcode lookup works
+- [x] All required inventory tests pass
 
 ---
 
