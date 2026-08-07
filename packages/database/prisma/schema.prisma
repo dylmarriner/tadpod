@@ -85,6 +85,13 @@ model User {
   customerCreditApplicationsCreated CustomerCreditApplication[] @relation("CustomerCreditApplicationCreatedBy")
   customerRefundsCreated            CustomerRefund[]            @relation("CustomerRefundCreatedBy")
   installmentPlansCreated           InstallmentPlan[]           @relation("InstallmentPlanCreatedBy")
+  supplierBillsCreated              SupplierBill[]              @relation("SupplierBillCreatedBy")
+  supplierBillsVoided               SupplierBill[]              @relation("SupplierBillVoidedBy")
+  supplierPaymentsCreated           SupplierPayment[]           @relation("SupplierPaymentCreatedBy")
+  supplierPaymentAllocationsCreated SupplierPaymentAllocation[] @relation("SupplierPaymentAllocationCreatedBy")
+  supplierCreditsCreated            SupplierCredit[]            @relation("SupplierCreditCreatedBy")
+  supplierCreditApplicationsCreated SupplierCreditApplication[] @relation("SupplierCreditApplicationCreatedBy")
+  supplierRefundsCreated            SupplierRefund[]            @relation("SupplierRefundCreatedBy")
 
   @@index([status, email])
 }
@@ -304,6 +311,10 @@ model Supplier {
   addresses        SupplierAddress[]
   purchaseOrders   PurchaseOrder[]
   backorders       Backorder[]
+  bills            SupplierBill[]
+  payments         SupplierPayment[]
+  credits          SupplierCredit[]
+  refunds          SupplierRefund[]
 
   @@index([active])
 }
@@ -356,6 +367,7 @@ model Product {
   deliveryLines          DeliveryLine[]
   backorderLines         BackorderLine[]
   customerInvoiceLines   CustomerInvoiceLine[]
+  supplierBillLines      SupplierBillLine[]
 
   @@index([categoryId])
   @@index([status])
@@ -535,6 +547,7 @@ model PurchaseOrder {
   lines         PurchaseOrderLine[]
   goodsReceipts GoodsReceipt[]
   backorders    Backorder[]
+  bills         SupplierBill[]
 
   @@index([supplierId, status])
   @@index([status])
@@ -556,6 +569,7 @@ model PurchaseOrderLine {
   product        Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
   receiptLines   GoodsReceiptLine[]
   backorderLines BackorderLine[]
+  billLines      SupplierBillLine[]
 
   @@index([purchaseOrderId])
   @@index([productId])
@@ -607,6 +621,178 @@ model GoodsReceiptLine {
 
   @@index([goodsReceiptId])
   @@index([purchaseOrderLineId])
+}
+
+/// A posted bill, credit, and refund are all immutable financial records: corrections happen
+/// through `SupplierCredit`/`SupplierRefund`, or by voiding the bill, never by editing a posted
+/// amount — the accounts-payable mirror of `CustomerInvoiceStatus`.
+enum SupplierBillStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  VOIDED
+  CREDITED
+}
+
+/// A bill records supplier-owed amount off received-but-unbilled purchase order lines
+/// (`PurchaseOrderLine.receivedQuantity - billedQuantity`, already tracked since Phase 3).
+/// `status` only ever holds the five persisted values above; "Overdue" is derived at read time
+/// from `status` and `dueDate`, mirroring `CustomerInvoice`.
+model SupplierBill {
+  id                String             @id @default(uuid()) @db.Uuid
+  billNumber        String             @unique @db.VarChar(40)
+  supplierId        String             @db.Uuid
+  purchaseOrderId   String             @db.Uuid
+  status            SupplierBillStatus @default(UNPAID)
+  currency          String             @db.Char(3)
+  supplierReference String?            @db.VarChar(120)
+  issueDate         DateTime           @db.Timestamptz(6)
+  dueDate           DateTime           @db.Timestamptz(6)
+  notes             String?            @db.VarChar(2000)
+  createdById       String             @db.Uuid
+  voidedById        String?            @db.Uuid
+  voidedAt          DateTime?          @db.Timestamptz(6)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(6)
+
+  supplier           Supplier                    @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  purchaseOrder      PurchaseOrder               @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  createdBy          User                        @relation("SupplierBillCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  voidedBy           User?                       @relation("SupplierBillVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  lines              SupplierBillLine[]
+  paymentAllocations SupplierPaymentAllocation[]
+  creditApplications SupplierCreditApplication[]
+
+  @@index([supplierId, status])
+  @@index([status, dueDate])
+  @@index([purchaseOrderId])
+}
+
+/// `(supplierBillId, purchaseOrderLineId)` is unique so the same received quantity on a
+/// purchase order line can never be billed twice, no matter how many separate bills are raised
+/// against the order over time.
+model SupplierBillLine {
+  id                  String   @id @default(uuid()) @db.Uuid
+  supplierBillId      String   @db.Uuid
+  purchaseOrderLineId String   @db.Uuid
+  productId           String   @db.Uuid
+  unitCostMinorUnits  BigInt
+  quantity            Decimal  @db.Decimal(18, 4)
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+
+  supplierBill      SupplierBill      @relation(fields: [supplierBillId], references: [id], onDelete: Cascade)
+  purchaseOrderLine PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+  product           Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([supplierBillId, purchaseOrderLineId])
+  @@index([supplierBillId])
+  @@index([purchaseOrderLineId])
+}
+
+/// A payment is recorded once, in full, against the supplier account, then allocated across
+/// eligible open bills oldest-first — the accounts-payable mirror of `CustomerPayment`.
+model SupplierPayment {
+  id               String    @id @default(uuid()) @db.Uuid
+  paymentNumber    String    @unique @db.VarChar(40)
+  supplierId       String    @db.Uuid
+  amountMinorUnits BigInt
+  currency         String    @db.Char(3)
+  method           String    @db.VarChar(60)
+  reference        String?   @db.VarChar(120)
+  paidAt           DateTime  @db.Timestamptz(6)
+  notes            String?   @db.VarChar(2000)
+  createdById      String    @db.Uuid
+  idempotencyKey   String    @unique @db.VarChar(200)
+  reversedAt       DateTime? @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  supplier    Supplier                    @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy   User                        @relation("SupplierPaymentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  allocations SupplierPaymentAllocation[]
+  credits     SupplierCredit[]
+
+  @@index([supplierId, paidAt])
+}
+
+model SupplierPaymentAllocation {
+  id                String    @id @default(uuid()) @db.Uuid
+  supplierPaymentId String    @db.Uuid
+  supplierBillId    String    @db.Uuid
+  amountMinorUnits  BigInt
+  createdById       String    @db.Uuid
+  reversedAt        DateTime? @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+
+  supplierPayment SupplierPayment @relation(fields: [supplierPaymentId], references: [id], onDelete: Cascade)
+  supplierBill    SupplierBill    @relation(fields: [supplierBillId], references: [id], onDelete: Restrict)
+  createdBy       User            @relation("SupplierPaymentAllocationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([supplierPaymentId])
+  @@index([supplierBillId])
+}
+
+/// Unapplied value on a supplier account — raised automatically when a payment overpays its
+/// bills (`sourcePaymentId` set), or manually (e.g. a supplier-issued goodwill credit).
+model SupplierCredit {
+  id                  String   @id @default(uuid()) @db.Uuid
+  creditNumber        String   @unique @db.VarChar(40)
+  supplierId          String   @db.Uuid
+  sourceType          String   @db.VarChar(30)
+  sourcePaymentId     String?  @db.Uuid
+  amountMinorUnits    BigInt
+  remainingMinorUnits BigInt
+  currency            String   @db.Char(3)
+  notes               String?  @db.VarChar(2000)
+  createdById         String   @db.Uuid
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+
+  supplier      Supplier                    @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  sourcePayment SupplierPayment?            @relation(fields: [sourcePaymentId], references: [id], onDelete: SetNull)
+  createdBy     User                        @relation("SupplierCreditCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  applications  SupplierCreditApplication[]
+  refunds       SupplierRefund[]
+
+  @@index([supplierId])
+}
+
+model SupplierCreditApplication {
+  id               String    @id @default(uuid()) @db.Uuid
+  supplierCreditId String    @db.Uuid
+  supplierBillId   String    @db.Uuid
+  amountMinorUnits BigInt
+  createdById      String    @db.Uuid
+  reversedAt       DateTime? @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  supplierCredit SupplierCredit @relation(fields: [supplierCreditId], references: [id], onDelete: Cascade)
+  supplierBill   SupplierBill   @relation(fields: [supplierBillId], references: [id], onDelete: Restrict)
+  createdBy      User           @relation("SupplierCreditApplicationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([supplierCreditId])
+  @@index([supplierBillId])
+}
+
+/// Money paid back out for unapplied supplier credit — always draws down a `SupplierCredit`,
+/// never issued directly against a bill.
+model SupplierRefund {
+  id               String   @id @default(uuid()) @db.Uuid
+  refundNumber     String   @unique @db.VarChar(40)
+  supplierId       String   @db.Uuid
+  supplierCreditId String   @db.Uuid
+  amountMinorUnits BigInt
+  currency         String   @db.Char(3)
+  method           String   @db.VarChar(60)
+  reference        String?  @db.VarChar(120)
+  notes            String?  @db.VarChar(2000)
+  createdById      String   @db.Uuid
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+
+  supplier       Supplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  supplierCredit SupplierCredit @relation(fields: [supplierCreditId], references: [id], onDelete: Restrict)
+  createdBy      User           @relation("SupplierRefundCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([supplierId])
+  @@index([supplierCreditId])
 }
 
 // --- Phase 4: customers, sales orders, reservations, deliveries, backorders ---

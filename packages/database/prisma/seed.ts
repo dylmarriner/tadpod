@@ -17,6 +17,7 @@ const permissions = [
   ['purchasing.read', 'View purchasing records'],
   ['purchasing.write', 'Create and update purchasing records'],
   ['purchasing.approve', 'Approve purchase orders above the approval threshold'],
+  ['purchasing.bill', 'Raise and void supplier bills, record payments, and manage credits and refunds'],
   ['inventory.read', 'View inventory records'],
   ['inventory.write', 'Post inventory operations'],
   ['inventory.override-negative-stock', 'Post stock movements that would take stock on hand below zero'],
@@ -41,10 +42,10 @@ const roles = [
 const rolePermissions: Record<string, string[]> = {
   administrator: ['*'],
   sales: ['sales.read', 'sales.write', 'sales.fulfil', 'sales.invoice', 'customers.read', 'customers.write', 'inventory.read'],
-  purchasing: ['purchasing.read', 'purchasing.write', 'suppliers.read', 'suppliers.write', 'inventory.read'],
+  purchasing: ['purchasing.read', 'purchasing.write', 'purchasing.bill', 'suppliers.read', 'suppliers.write', 'inventory.read'],
   warehouse: ['inventory.read', 'inventory.write', 'sales.read', 'sales.fulfil', 'purchasing.read'],
   'accounts-receivable': ['customers.read', 'customers.write', 'sales.read', 'sales.invoice', 'reports.read'],
-  'accounts-payable': ['suppliers.read', 'suppliers.write', 'purchasing.read', 'purchasing.approve', 'reports.read'],
+  'accounts-payable': ['suppliers.read', 'suppliers.write', 'purchasing.read', 'purchasing.approve', 'purchasing.bill', 'reports.read'],
   manager: ['sales.read', 'sales.override-credit-limit', 'purchasing.read', 'purchasing.approve', 'inventory.read', 'customers.read', 'suppliers.read', 'reports.read', 'audit.read'],
   'read-only': ['sales.read', 'purchasing.read', 'inventory.read', 'customers.read', 'suppliers.read', 'reports.read']
 };
@@ -96,7 +97,7 @@ async function seed(): Promise<void> {
   for (const sequence of [
     ['sales-order', 'SO-'], ['delivery', 'DN-'], ['backorder', 'BO-'], ['customer-invoice', 'INV-'],
     ['customer-payment', 'CP-'], ['purchase-order', 'PO-'], ['goods-receipt', 'GRN-'],
-    ['supplier-bill', 'BILL-'], ['supplier-payment', 'SP-'], ['credit-note', 'CR-'], ['customer-refund', 'RF-']
+    ['supplier-bill', 'BILL-'], ['supplier-payment', 'SP-'], ['credit-note', 'CR-'], ['customer-refund', 'RF-'], ['supplier-refund', 'SRF-']
   ] as const) {
     await prisma.documentSequence.upsert({ where: { key: sequence[0] }, update: { prefix: sequence[1] }, create: { key: sequence[0], prefix: sequence[1] } });
   }
