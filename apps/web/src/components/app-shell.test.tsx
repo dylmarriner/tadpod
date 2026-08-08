@@ -34,7 +34,7 @@ describe('AppShell', () => {
     for (const code of ['DB', 'SL', 'PU', 'IN', 'AC', 'RP', 'AD']) {
       expect(html).toContain(code);
     }
-    for (const section of ['Dashboard', 'Sales', 'Purchasing', 'Inventory', 'Customers', 'Suppliers', 'Reports', 'Administration']) {
+    for (const section of ['Dashboard', 'Sales', 'Purchasing', 'Receipts', 'Inventory', 'Customers', 'Suppliers', 'Reports', 'Administration']) {
       expect(html).toContain(section);
     }
 
