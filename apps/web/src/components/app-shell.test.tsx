@@ -3,13 +3,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { AppShell } from './app-shell';
 
+const navigationState = vi.hoisted(() => ({ pathname: '/dashboard' }));
+
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/dashboard',
+  usePathname: () => navigationState.pathname,
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() })
 }));
 
 describe('AppShell', () => {
   it('renders the Foundry spine, command deck and context ledger', () => {
+    navigationState.pathname = '/dashboard';
     const html = renderToStaticMarkup(
       <AppShell
         user={{
@@ -43,7 +46,28 @@ describe('AppShell', () => {
     expect(html).toContain('Skip to main content');
   });
 
+  it('renders every active-domain destination into the mobile subnavigation', () => {
+    navigationState.pathname = '/sales/invoices';
+    const html = renderToStaticMarkup(
+      <AppShell
+        user={{ id: '1', displayName: 'Admin', email: 'admin@tadpods.local', permissions: ['*'] }}
+        brand={{ displayName: 'TADPODS', primaryColour: '#FF9E2C', accentColour: '#2DD4BF' }}
+      >
+        <p>Content</p>
+      </AppShell>
+    );
+
+    expect(html).toContain('fnd-mobile-subnav');
+    expect(html).toContain('Orders');
+    expect(html).toContain('Backorders');
+    expect(html).toContain('Invoicing');
+    expect(html).toContain('Payments');
+    expect(html).toContain('Credits');
+    expect(html).toContain('aria-current="page"');
+  });
+
   it('does not expose navigation the user cannot read', () => {
+    navigationState.pathname = '/inventory/products';
     const html = renderToStaticMarkup(
       <AppShell
         user={{ id: '2', displayName: 'Warehouse', email: 'warehouse@tadpods.local', permissions: ['inventory.read'] }}
@@ -54,6 +78,7 @@ describe('AppShell', () => {
     );
 
     expect(html).toContain('Inventory');
+    expect(html).toContain('fnd-mobile-subnav');
     expect(html).not.toContain('Customers');
     expect(html).not.toContain('Administration');
   });
