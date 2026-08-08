@@ -12,6 +12,13 @@ export default async function DashboardPage() {
     ['Failed events', metrics.failedEvents, '/administration/audit'],
     ['Audit events today', metrics.auditEventsLast24Hours, '/administration/audit']
   ] as const;
+  const operationalAreas = [
+    ['SL', 'Sales orders', '/sales/orders'],
+    ['PU', 'Purchase orders', '/purchasing/orders'],
+    ['IN', 'Inventory', '/inventory/products'],
+    ['AC', 'Customer accounts', '/customers'],
+    ['RP', 'Reports', '/reports']
+  ] as const;
 
   return <>
     <PageHeader
@@ -30,18 +37,17 @@ export default async function DashboardPage() {
       </a>)}
     </div>
 
-    <div className="grid grid--2 dashboard-lower-grid">
+    <div className="grid grid--2" style={{ marginTop: 16 }}>
       <Card kicker="Navigate" title="Operational areas">
-        <div className="operation-links">
-          <a href="/sales/orders"><span>SL</span><strong>Sales orders</strong></a>
-          <a href="/purchasing/orders"><span>PU</span><strong>Purchase orders</strong></a>
-          <a href="/inventory/products"><span>IN</span><strong>Inventory</strong></a>
-          <a href="/customers"><span>AC</span><strong>Customer accounts</strong></a>
-          <a href="/reports"><span>RP</span><strong>Reports</strong></a>
+        <div className="stack">
+          {operationalAreas.map(([code, label, href]) => <a className="button button--secondary" href={href} key={href}>
+            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--flux)' }}>{code}</span>
+            <span>{label}</span>
+          </a>)}
         </div>
       </Card>
       <Card kicker="Guardrails" title="System rules">
-        <ul className="system-rules">
+        <ul className="stack muted" style={{ margin: 0, paddingLeft: 20 }}>
           <li>NZD and New Zealand GST defaults</li>
           <li>Negative stock disabled</li>
           <li>Posted records use reversals rather than silent edits</li>
