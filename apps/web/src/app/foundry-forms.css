@@ -18,6 +18,13 @@ fieldset.form-stack > legend {
   text-transform: uppercase;
 }
 
+.button-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -125,6 +132,11 @@ fieldset.form-stack > legend {
 @media (max-width: 820px) {
   fieldset.form-stack {
     padding: 13px;
+  }
+
+  .button-row > .button,
+  .button-row > a {
+    flex: 1 1 180px;
   }
 
   .form-stack > .data-table {
