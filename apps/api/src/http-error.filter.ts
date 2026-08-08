@@ -17,11 +17,15 @@ export class HttpErrorFilter implements ExceptionFilter {
       error = 'Validation Error';
       message = exception.issues.map((issue) => `${issue.path.join('.') || 'request'}: ${issue.message}`).join('; ');
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
-      // Thrown when a request supplies a value Prisma's query engine rejects before it ever
-      // reaches the database — most commonly a malformed id (e.g. a non-UUID string) in a
-      // `:id` route param. Without this, it falls through to a 500 for what is really a bad
-      // request; every route that does `findUnique({ where: { id } })` on a raw path param
-      // benefits from this without each one needing its own UUID-format check.
+      statusCode = HttpStatus.BAD_REQUEST;
+      error = 'Validation Error';
+      message = 'The request contains a malformed identifier or value';
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError && exception.code === 'P2023') {
+      // "Inconsistent column data" — Postgres rejects a value at the wire level, most commonly
+      // a non-UUID string reaching a `@db.Uuid` column via a raw `:id` route param. Without
+      // this, it falls through to a 500 for what is really a bad request; every route that
+      // does `findUnique({ where: { id } })` on a raw path param benefits from this without
+      // each one needing its own UUID-format check.
       statusCode = HttpStatus.BAD_REQUEST;
       error = 'Validation Error';
       message = 'The request contains a malformed identifier or value';
