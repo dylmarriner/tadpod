@@ -24,6 +24,7 @@ const domains: readonly Domain[] = [
   {
     code: 'PU', label: 'Purchasing', items: [
       { label: 'Orders', href: '/purchasing/orders', permission: 'purchasing.read' },
+      { label: 'Receipts', href: '/purchasing/receipts', permission: 'purchasing.read' },
       { label: 'Bills', href: '/purchasing/bills', permission: 'purchasing.read' },
       { label: 'Payments', href: '/purchasing/payments', permission: 'purchasing.read' },
       { label: 'Credits', href: '/purchasing/credits', permission: 'purchasing.read' }
