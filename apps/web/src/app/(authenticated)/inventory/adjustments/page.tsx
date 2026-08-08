@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Button, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { ReverseAdjustmentButton } from '../../../../components/adjustment-forms';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
@@ -42,11 +42,11 @@ export default async function AdjustmentsPage() {
       kicker="Inventory"
       title="Opening stock and adjustments"
       description="Posted opening balances and stock corrections with their source, actor and before/after quantity."
-      actions={<Link href="/inventory/adjustments/new"><Button>Record adjustment</Button></Link>}
+      actions={<Link className="button button--primary" href="/inventory/adjustments/new">Record adjustment</Link>}
     />
     <Card kicker="Immutable postings" title="Adjustment ledger">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
-        : page === null || page.items.length === 0 ? <EmptyState title="No adjustments yet" description="Opening stock and stock adjustments will appear here once posted." action={<Link href="/inventory/adjustments/new"><Button>Record the first posting</Button></Link>} />
+        : page === null || page.items.length === 0 ? <EmptyState title="No adjustments yet" description="Opening stock and stock adjustments will appear here once posted." action={<Link className="button button--primary" href="/inventory/adjustments/new">Record the first posting</Link>} />
         : <DataTable label="Opening stock and adjustments" headings={['Posted', 'Type', 'Product', 'Warehouse', 'Before', 'Change', 'After', 'Reason / notes', 'Actor', 'Reversal']}>
             {page.items.map((item) => <tr key={item.id}>
               <td>{new Date(item.postedAt).toLocaleString('en-NZ')}</td>
