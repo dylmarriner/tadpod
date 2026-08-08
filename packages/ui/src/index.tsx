@@ -207,6 +207,7 @@ export function CommandPalette({
   activeIndex?: number;
 }) {
   if (!open) return null;
+  const activeResultId = actions[activeIndex] ? `tadpods-command-result-${activeIndex}` : undefined;
   return <div className="command-backdrop" role="presentation" onMouseDown={onClose}>
     <section className="command-panel" role="dialog" aria-modal="true" aria-label="TADPODS command line" onMouseDown={(event) => event.stopPropagation()}>
       <div className="command-panel__input-row">
@@ -214,16 +215,24 @@ export function CommandPalette({
         <input
           autoFocus
           className="command-panel__input"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded="true"
+          aria-controls="tadpods-command-results"
+          aria-activedescendant={activeResultId}
           placeholder="Type a command, record or action"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
         />
         <kbd>ESC</kbd>
       </div>
-      <div className="command-results">
+      <div className="command-results" id="tadpods-command-results" role="listbox">
         {actions.length === 0 ? <div className="command-results__empty">No matching actions.</div> : null}
         {actions.map((action, index) => <a
           key={`${action.href}:${action.label}`}
+          id={`tadpods-command-result-${index}`}
+          role="option"
+          aria-selected={index === activeIndex}
           href={action.href}
           className={index === activeIndex ? 'is-active' : ''}
           onClick={(event) => { event.preventDefault(); onSelect(action); }}
