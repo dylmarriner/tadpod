@@ -8,10 +8,13 @@ import { browserApi } from '../lib/api';
 type User = { id: string; displayName: string; email: string; permissions: string[] };
 type Brand = { displayName: string; primaryColour: string; accentColour: string };
 
+type NavItem = { label: string; href: string; permission?: string } | { label: string; enabled: false };
+type NavGroup = { label: string | null; items: readonly NavItem[] };
+
 // Grouped so every sub-page is one click away from the sidebar itself — previously "Inventory"
 // was the only area collapsed behind a hub page (unlike Sales/Purchasing, which already linked
 // their sub-pages directly), so reaching Products took an extra click through /inventory first.
-const navGroups = [
+const navGroups: readonly NavGroup[] = [
   { label: null, items: [{ label: 'Dashboard', href: '/dashboard' }] },
   {
     label: 'Sales',
@@ -50,7 +53,7 @@ const navGroups = [
       { label: 'Suppliers', href: '/suppliers', permission: 'suppliers.read' }
     ]
   },
-  { label: null, items: [{ label: 'Reports', enabled: false }] },
+  { label: null, items: [{ label: 'Reports', href: '/reports', permission: 'reports.read' }] },
   { label: null, items: [{ label: 'Administration', href: '/administration', permission: 'admin.users' }] }
 ] as const;
 
