@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
 
@@ -27,7 +27,6 @@ function movementTone(movementType: string): 'success' | 'warning' | 'neutral' |
   return 'success';
 }
 
-/** Only source types with a real detail page get a link; others still show their label and id as text. */
 function sourceHref(sourceType: string, sourceId: string): string | null {
   if (sourceType === 'goods-receipt-line') return `/purchasing/receipts/${sourceId}`;
   if (sourceType === 'stock-count') return `/inventory/stock-counts/${sourceId}`;
@@ -44,13 +43,8 @@ export default async function MovementsPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Stock movement history</h1>
-        <p>Every posted movement on the immutable inventory ledger, most recent first. Every quantity here — and every stock balance derived from it — traces back to one of these rows.</p>
-      </div>
-    </header>
-    <Card title="Movements">
+    <PageHeader kicker="Inventory" title="Stock movement history" description="The immutable inventory ledger, most recent first. Every stock balance traces back to one of these postings." />
+    <Card kicker="Source of truth" title="Movement ledger">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
         : page === null || page.items.length === 0
           ? <EmptyState title="No stock movements yet" description="Movements will appear here once stock is posted." />
@@ -62,7 +56,7 @@ export default async function MovementsPage() {
                   <td><strong>{movement.product.sku}</strong><div className="muted">{movement.product.name}</div></td>
                   <td>{movement.warehouse.code}</td>
                   <td><Badge tone={movementTone(movement.movementType)}>{movement.movementType.replaceAll('_', ' ')}</Badge></td>
-                  <td>{Number(movement.signedQuantity) > 0 ? '+' : ''}{movement.signedQuantity}</td>
+                  <td data-quantity>{Number(movement.signedQuantity) > 0 ? '+' : ''}{movement.signedQuantity}</td>
                   <td>{movement.sourceType} {href ? <Link href={href}>{movement.sourceId}</Link> : <span className="muted">{movement.sourceId}</span>}</td>
                   <td>{movement.notes ?? '—'}</td>
                   <td>{movement.reversalOfId ? <Badge tone="neutral">Reverses a movement</Badge> : '—'}</td>
