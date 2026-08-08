@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Button, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
 
@@ -21,12 +21,12 @@ export default async function CustomerPaymentsPage() {
       kicker="Sales"
       title="Customer payments"
       description="Payments allocate oldest invoice first by default; any unapplied remainder stays on the customer account as credit."
-      actions={<Link href="/sales/payments/new"><Button>Record payment</Button></Link>}
+      actions={<Link className="button button--primary" href="/sales/payments/new">Record payment</Link>}
     />
     <Card kicker="Cash received" title="Payment register">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
         : payments === null || payments.items.length === 0
-          ? <EmptyState title="No payments yet" description="Record the first customer payment to begin allocating receivables." action={<Link href="/sales/payments/new"><Button>Record the first payment</Button></Link>} />
+          ? <EmptyState title="No payments yet" description="Record the first customer payment to begin allocating receivables." action={<Link className="button button--primary" href="/sales/payments/new">Record the first payment</Link>} />
           : <DataTable label="Customer payments" headings={['Payment', 'Customer', 'Amount', 'Method', 'Received', 'Status']}>
               {payments.items.map((payment) => <tr key={payment.id}>
                 <td><Link href={`/sales/payments/${payment.id}`}>{payment.paymentNumber}</Link></td>
