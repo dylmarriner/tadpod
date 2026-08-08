@@ -8,22 +8,50 @@ import { browserApi } from '../lib/api';
 type User = { id: string; displayName: string; email: string; permissions: string[] };
 type Brand = { displayName: string; primaryColour: string; accentColour: string };
 
-const sections = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Sales', href: '/sales/orders', permission: 'sales.read' },
-  { label: 'Backorders', href: '/sales/backorders', permission: 'sales.read' },
-  { label: 'Invoicing', href: '/sales/invoices', permission: 'sales.read' },
-  { label: 'Payments', href: '/sales/payments', permission: 'sales.read' },
-  { label: 'Credits', href: '/sales/credits', permission: 'sales.read' },
-  { label: 'Purchasing', href: '/purchasing/orders', permission: 'purchasing.read' },
-  { label: 'Bills', href: '/purchasing/bills', permission: 'purchasing.read' },
-  { label: 'Supplier payments', href: '/purchasing/payments', permission: 'purchasing.read' },
-  { label: 'Supplier credits', href: '/purchasing/credits', permission: 'purchasing.read' },
-  { label: 'Inventory', href: '/inventory', permission: 'inventory.read' },
-  { label: 'Customers', href: '/customers', permission: 'customers.read' },
-  { label: 'Suppliers', href: '/suppliers', permission: 'suppliers.read' },
-  { label: 'Reports', enabled: false },
-  { label: 'Administration', href: '/administration', permission: 'admin.users' }
+// Grouped so every sub-page is one click away from the sidebar itself — previously "Inventory"
+// was the only area collapsed behind a hub page (unlike Sales/Purchasing, which already linked
+// their sub-pages directly), so reaching Products took an extra click through /inventory first.
+const navGroups = [
+  { label: null, items: [{ label: 'Dashboard', href: '/dashboard' }] },
+  {
+    label: 'Sales',
+    items: [
+      { label: 'Orders', href: '/sales/orders', permission: 'sales.read' },
+      { label: 'Backorders', href: '/sales/backorders', permission: 'sales.read' },
+      { label: 'Invoicing', href: '/sales/invoices', permission: 'sales.read' },
+      { label: 'Payments', href: '/sales/payments', permission: 'sales.read' },
+      { label: 'Credits', href: '/sales/credits', permission: 'sales.read' }
+    ]
+  },
+  {
+    label: 'Purchasing',
+    items: [
+      { label: 'Orders', href: '/purchasing/orders', permission: 'purchasing.read' },
+      { label: 'Bills', href: '/purchasing/bills', permission: 'purchasing.read' },
+      { label: 'Payments', href: '/purchasing/payments', permission: 'purchasing.read' },
+      { label: 'Credits', href: '/purchasing/credits', permission: 'purchasing.read' }
+    ]
+  },
+  {
+    label: 'Inventory',
+    items: [
+      { label: 'Products', href: '/inventory/products', permission: 'inventory.read' },
+      { label: 'Warehouses', href: '/inventory/warehouses', permission: 'inventory.read' },
+      { label: 'Adjustments', href: '/inventory/adjustments', permission: 'inventory.read' },
+      { label: 'Transfers', href: '/inventory/transfers', permission: 'inventory.read' },
+      { label: 'Stock counts', href: '/inventory/stock-counts', permission: 'inventory.read' },
+      { label: 'Movements', href: '/inventory/movements', permission: 'inventory.read' }
+    ]
+  },
+  {
+    label: 'Accounts',
+    items: [
+      { label: 'Customers', href: '/customers', permission: 'customers.read' },
+      { label: 'Suppliers', href: '/suppliers', permission: 'suppliers.read' }
+    ]
+  },
+  { label: null, items: [{ label: 'Reports', enabled: false }] },
+  { label: null, items: [{ label: 'Administration', href: '/administration', permission: 'admin.users' }] }
 ] as const;
 
 function allowed(user: User, permission?: string): boolean {
@@ -62,10 +90,17 @@ export function AppShell({ user, brand, children }: { user: User; brand: Brand; 
     <aside className="sidebar">
       <a className="wordmark" href="/dashboard"><span className="wordmark__mark">T</span><span>{brand.displayName}</span></a>
       <nav className="nav" aria-label="Primary navigation">
-        {sections.map((section) => {
-          if ('permission' in section && !allowed(user, section.permission)) return null;
-          if ('href' in section && section.href) return <a key={section.label} href={section.href} aria-current={pathname.startsWith(section.href) ? 'page' : undefined}>{section.label}</a>;
-          return <button key={section.label} disabled title={`${section.label} is enabled in the next TADPODS build phase`}>{section.label}<Badge>Next phase</Badge></button>;
+        {navGroups.map((group) => {
+          const items = group.items.filter((item) => !('permission' in item) || allowed(user, item.permission));
+          if (items.length === 0) return null;
+          return <div className="nav-group" key={group.label ?? items[0]!.label}>
+            {group.label ? <div className="nav-group__label">{group.label}</div> : null}
+            {items.map((item) =>
+              'href' in item && item.href
+                ? <a key={item.label} href={item.href} aria-current={pathname.startsWith(item.href) ? 'page' : undefined}>{item.label}</a>
+                : <button key={item.label} disabled title={`${item.label} is enabled in the next TADPODS build phase`}>{item.label}<Badge>Next phase</Badge></button>
+            )}
+          </div>;
         })}
       </nav>
       <div className="sidebar__footer"><div><strong>{user.displayName}</strong></div><small>{user.email}</small></div>
