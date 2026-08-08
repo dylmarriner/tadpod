@@ -1,4 +1,4 @@
-import { Card, Badge } from '@tadpods/ui';
+import { Badge, Card, PageHeader } from '@tadpods/ui';
 import { serverApi } from '../../../lib/server-api';
 
 export const metadata = { title: 'Dashboard' };
@@ -12,5 +12,42 @@ export default async function DashboardPage() {
     ['Failed events', metrics.failedEvents, '/administration/audit'],
     ['Audit events today', metrics.auditEventsLast24Hours, '/administration/audit']
   ] as const;
-  return <><header className="page-header"><div><h1>TADPODS dashboard</h1><p>Platform health and the records requiring attention.</p></div><Badge tone={metrics.failedEvents ? 'danger' : 'success'}>{metrics.failedEvents ? 'Attention required' : 'Platform healthy'}</Badge></header><div className="grid grid--metrics">{cards.map(([label, value, href]) => <a href={href} key={label}><Card><div className="metric">{value}</div><div className="metric-label">{label}</div></Card></a>)}</div><div className="grid grid--2" style={{ marginTop: '1rem' }}><Card title="What comes next"><p>Products, warehouses and the authoritative stock ledger are the next implementation phase. The platform foundation is already live and usable for administration.</p></Card><Card title="System rules"><ul><li>NZD and New Zealand GST defaults</li><li>Negative stock disabled</li><li>Posted records will use reversals</li><li>Every security change is audited</li></ul></Card></div></>;
+
+  return <>
+    <PageHeader
+      kicker="Operations console"
+      title="TADPODS dashboard"
+      description="Live platform telemetry and direct access to the records that need attention."
+      actions={<Badge tone={metrics.failedEvents ? 'danger' : 'live'} pulse>{metrics.failedEvents ? 'Attention required' : 'Platform live'}</Badge>}
+    />
+
+    <div className="grid grid--metrics">
+      {cards.map(([label, value, href]) => <a href={href} key={label}>
+        <Card kicker="Telemetry">
+          <div className="metric">{value}</div>
+          <div className="metric-label">{label}</div>
+        </Card>
+      </a>)}
+    </div>
+
+    <div className="grid grid--2 dashboard-lower-grid">
+      <Card kicker="Navigate" title="Operational areas">
+        <div className="operation-links">
+          <a href="/sales/orders"><span>SL</span><strong>Sales orders</strong></a>
+          <a href="/purchasing/orders"><span>PU</span><strong>Purchase orders</strong></a>
+          <a href="/inventory/products"><span>IN</span><strong>Inventory</strong></a>
+          <a href="/customers"><span>AC</span><strong>Customer accounts</strong></a>
+          <a href="/reports"><span>RP</span><strong>Reports</strong></a>
+        </div>
+      </Card>
+      <Card kicker="Guardrails" title="System rules">
+        <ul className="system-rules">
+          <li>NZD and New Zealand GST defaults</li>
+          <li>Negative stock disabled</li>
+          <li>Posted records use reversals rather than silent edits</li>
+          <li>Security changes are recorded in audit history</li>
+        </ul>
+      </Card>
+    </div>
+  </>;
 }
