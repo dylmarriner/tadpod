@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import './foundry-forms.css';
 import './foundry-responsive.css';
+import './foundry-a11y.css';
 import { publicApi } from '../lib/server-api';
 import { ServiceWorkerRegistration } from '../components/service-worker-registration';
 
