@@ -53,19 +53,27 @@ describe('TADPODS Foundry UI primitives', () => {
     expect(html).toContain('No users found');
   });
 
-  it('renders the command palette as an accessible dialog', () => {
+  it('renders the command palette as an accessible dialog with an announced active result', () => {
     const html = renderToStaticMarkup(
       <CommandPalette
         open
         query="sales"
+        activeIndex={1}
         onQueryChange={() => undefined}
-        actions={[{ label: 'Open sales orders', href: '/sales/orders', hint: 'SL' }]}
+        actions={[
+          { label: 'Open sales orders', href: '/sales/orders', hint: 'SL' },
+          { label: 'Open sales invoices', href: '/sales/invoices', hint: 'SL' }
+        ]}
         onSelect={() => undefined}
         onClose={() => undefined}
       />
     );
     expect(html).toContain('role="dialog"');
-    expect(html).toContain('TADPODS command line');
-    expect(html).toContain('Open sales orders');
+    expect(html).toContain('role="combobox"');
+    expect(html).toContain('aria-controls="tadpods-command-results"');
+    expect(html).toContain('aria-activedescendant="tadpods-command-result-1"');
+    expect(html).toContain('id="tadpods-command-result-1"');
+    expect(html).toContain('aria-selected="true"');
+    expect(html).toContain('Open sales invoices');
   });
 });
