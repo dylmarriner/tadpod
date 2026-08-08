@@ -1,145 +1,18 @@
-/* Foundry compatibility for route-owned operational form markup.
-   Business forms intentionally keep their existing behaviour and compose these surfaces. */
-
-fieldset.form-stack {
-  min-width: 0;
-  margin: 0;
-  padding: 16px;
-  border: 1px solid var(--line-1);
-  background: var(--surface-1);
-  clip-path: var(--clip-panel);
-}
-
-fieldset.form-stack > legend {
-  padding: 0 8px;
-  color: var(--flux);
-  font: 800 var(--text-kicker)/1.2 var(--font-mono);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-}
-
-.button-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--line-1);
-  background: var(--surface-1);
-  font-variant-numeric: tabular-nums;
-}
-
-.data-table th,
-.data-table td {
-  padding: 11px 13px;
-  border-bottom: 1px solid var(--line-0);
-  text-align: left;
-  vertical-align: top;
-}
-
-.data-table th {
-  color: var(--ink-3);
-  background: var(--surface-2);
-  font: 800 10px/1.2 var(--font-mono);
-  letter-spacing: .075em;
-  text-transform: uppercase;
-}
-
-.data-table tbody tr:hover {
-  background: rgba(255, 158, 44, .035);
-  box-shadow: inset 2px 0 var(--flux);
-}
-
-.data-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.data-table td[data-money],
-.data-table td[data-quantity],
-.data-table td:nth-child(n+2):has(input[inputmode="decimal"]) {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-.option-list {
-  list-style: none;
-  display: grid;
-  gap: 2px;
-  max-height: 260px;
-  overflow: auto;
-  margin: -4px 0 4px;
-  padding: 6px;
-  border: 1px solid var(--line-2);
-  background: var(--surface-2);
-  clip-path: var(--clip-panel);
-  box-shadow: var(--shadow-2);
-}
-
-.option-list li {
-  margin: 0;
-  padding: 0;
-}
-
-.option-list button {
-  width: 100%;
-  min-height: 40px;
-  padding: 8px 10px;
-  border: 0;
-  border-left: 2px solid transparent;
-  background: transparent;
-  color: var(--ink-1);
-  text-align: left;
-  cursor: pointer;
-}
-
-.option-list button:hover,
-.option-list button:focus-visible {
-  border-left-color: var(--flux);
-  background: var(--surface-3);
-  color: var(--ink-0);
-}
-
-.form-stack > .data-table {
-  display: block;
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-.form-stack > .data-table thead,
-.form-stack > .data-table tbody,
-.form-stack > .data-table tr {
-  width: 100%;
-}
-
-.card a:not(.button),
-.page a:not(.button) {
-  text-decoration-color: transparent;
-  text-underline-offset: 3px;
-  transition: color var(--duration-fast) var(--ease-out), text-decoration-color var(--duration-fast) var(--ease-out);
-}
-
-.card a:not(.button):hover,
-.page a:not(.button):hover {
-  color: var(--flux-strong);
-  text-decoration: underline;
-  text-decoration-color: var(--flux-border);
-}
-
-@media (max-width: 820px) {
-  fieldset.form-stack {
-    padding: 13px;
-  }
-
-  .button-row > .button,
-  .button-row > a {
-    flex: 1 1 180px;
-  }
-
-  .form-stack > .data-table {
-    min-width: 620px;
-  }
-}
+fieldset.form-stack{min-width:0;margin:0;padding:16px;border:1px solid var(--line-1);background:var(--surface-1);clip-path:var(--clip-panel)}
+fieldset.form-stack>legend{padding:0 8px;color:var(--flux);font:800 var(--text-kicker)/1.2 var(--font-mono);letter-spacing:.1em;text-transform:uppercase}
+.button-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.data-table{width:100%;border-collapse:collapse;border:1px solid var(--line-1);background:var(--surface-1);font-variant-numeric:tabular-nums}
+.data-table th,.data-table td{padding:11px 13px;border-bottom:1px solid var(--line-0);text-align:left;vertical-align:top}
+.data-table th{color:var(--ink-3);background:var(--surface-2);font:800 10px/1.2 var(--font-mono);letter-spacing:.075em;text-transform:uppercase}
+.data-table tbody tr:hover{background:rgba(255,158,44,.035);box-shadow:inset 2px 0 var(--flux)}
+.data-table tbody tr:last-child td{border-bottom:0}
+.data-table td[data-money],.data-table td[data-quantity],.data-table td:nth-child(n+2):has(input[inputmode="decimal"]){font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.option-list{list-style:none;display:grid;gap:2px;max-height:260px;overflow:auto;margin:-4px 0 4px;padding:6px;border:1px solid var(--line-2);background:var(--surface-2);clip-path:var(--clip-panel);box-shadow:var(--shadow-2)}
+.option-list li{margin:0;padding:0}
+.option-list button{width:100%;min-height:40px;padding:8px 10px;border:0;border-left:2px solid transparent;background:transparent;color:var(--ink-1);text-align:left;cursor:pointer}
+.option-list button:hover,.option-list button:focus-visible{border-left-color:var(--flux);background:var(--surface-3);color:var(--ink-0)}
+.form-stack>.data-table{display:block;width:100%;min-width:0;max-width:100%;overflow-x:auto}
+.form-stack>.data-table th,.form-stack>.data-table td{white-space:nowrap}
+.card a:not(.button),.page a:not(.button){text-decoration-color:transparent;text-underline-offset:3px;transition:color var(--duration-fast) var(--ease-out),text-decoration-color var(--duration-fast) var(--ease-out)}
+.card a:not(.button):hover,.page a:not(.button):hover{color:var(--flux-strong);text-decoration:underline;text-decoration-color:var(--flux-border)}
+@media(max-width:820px){fieldset.form-stack{padding:13px}.button-row>.button,.button-row>a{flex:1 1 180px}}
