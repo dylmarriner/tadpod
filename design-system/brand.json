@@ -15,13 +15,12 @@
     "motion": true
   },
   "logo": {
-    "primary": "assets/relx-product-logo.png",
+    "primary": "assets/icon-512.png",
     "alternates": [
       "assets/icon-192.png",
-      "assets/icon-512.png",
       "assets/apple-touch-icon.png"
     ],
-    "notes": "User-supplied image bound as the primary logo/product identity asset. The source is a monochrome RELX product photograph with smoke on white."
+    "notes": "The previously bound primary logo asset was a third-party company's branded product photograph (RELX, an unrelated vape brand) and has been removed — it was never TADPODS's own identity asset and must never be used as one. TADPODS's own PWA icons are used here instead."
   },
   "colors": [
     {

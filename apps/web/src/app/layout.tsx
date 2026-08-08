@@ -1,8 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { publicApi } from '../lib/server-api';
 import { ServiceWorkerRegistration } from '../components/service-worker-registration';
+
+// Self-hosted at build time (next/font downloads and bundles the actual .woff2 files into the
+// build output) so the brand typeface renders as designed instead of silently falling back to
+// whatever sans-serif the OS happens to have, and with no runtime request to Google's CDN.
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800', '900'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
   title: { default: 'TADPODS', template: '%s | TADPODS' },
@@ -32,8 +38,8 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const brand = await publicApi<{ displayName: string; primaryColour: string; accentColour: string }>('/brand').catch(() => ({ displayName: 'TADPODS', primaryColour: '#0F766E', accentColour: '#14B8A6' }));
-  return <html lang="en"><body style={{ '--brand': brand.primaryColour, '--accent': brand.accentColour } as React.CSSProperties}>
+  const brand = await publicApi<{ displayName: string; primaryColour: string; accentColour: string }>('/brand').catch(() => ({ displayName: 'TADPODS', primaryColour: '#1677FF', accentColour: '#6B7280' }));
+  return <html lang="en" className={inter.variable}><body style={{ '--brand': brand.primaryColour, '--accent': brand.accentColour } as React.CSSProperties}>
     <ServiceWorkerRegistration />
     {children}
   </body></html>;
