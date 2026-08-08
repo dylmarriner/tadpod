@@ -168,6 +168,10 @@ export function AppShell({ user, brand, children }: { user: User; brand: Brand; 
           <Button variant="ghost" size="sm" onClick={() => void logout()}>Sign out</Button>
         </div>
       </header>
+      {currentDomain && currentDomain.items.length > 1 ? <nav className="fnd-mobile-subnav" aria-label={`${currentDomain.label} sections`}>
+        <span className="fnd-mobile-subnav__code" aria-hidden="true">{currentDomain.code}</span>
+        {currentDomain.items.map((item) => <a key={item.href} href={item.href} aria-current={isActive(pathname, item.href) ? 'page' : undefined}>{item.label}</a>)}
+      </nav> : null}
       <main id="main-content" className="fnd-deck-body page">{children}</main>
     </div>
 
