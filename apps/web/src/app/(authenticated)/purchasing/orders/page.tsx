@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Button, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
 
@@ -32,14 +32,14 @@ export default async function PurchaseOrdersPage() {
       title="Purchase orders"
       description="Supplier commitments and receipt progress. A confirmed order is not a payable until its supplier bill is posted."
       actions={<div className="inline">
-        <Link href="/purchasing/receipts"><Button variant="secondary">Goods receipts</Button></Link>
-        <Link href="/purchasing/orders/new"><Button>New purchase order</Button></Link>
+        <Link className="button button--secondary" href="/purchasing/receipts">Goods receipts</Link>
+        <Link className="button button--primary" href="/purchasing/orders/new">New purchase order</Link>
       </div>}
     />
     <Card kicker="Register" title="Orders">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
         : orders === null || orders.items.length === 0
-          ? <EmptyState title="No purchase orders yet" description="Create the first purchase order to begin tracking supplier commitments." action={<Link href="/purchasing/orders/new"><Button>Create the first order</Button></Link>} />
+          ? <EmptyState title="No purchase orders yet" description="Create the first purchase order to begin tracking supplier commitments." action={<Link className="button button--primary" href="/purchasing/orders/new">Create the first order</Link>} />
           : <DataTable label="Purchase orders" headings={['Order', 'Supplier', 'Status', 'Total', 'Created']}>
               {orders.items.map((order) => <tr key={order.id}>
                 <td><Link href={`/purchasing/orders/${order.id}`}>{order.orderNumber}</Link></td>
