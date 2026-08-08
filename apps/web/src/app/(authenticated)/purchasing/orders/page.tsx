@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Button, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Button, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
 
@@ -27,26 +27,25 @@ export default async function PurchaseOrdersPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Purchase orders</h1>
-        <p>Commitments to suppliers. A confirmed order is not a payable — only a posted supplier bill creates one.</p>
-      </div>
-      <div className="inline">
+    <PageHeader
+      kicker="Purchasing"
+      title="Purchase orders"
+      description="Supplier commitments and receipt progress. A confirmed order is not a payable until its supplier bill is posted."
+      actions={<div className="inline">
         <Link href="/purchasing/receipts"><Button variant="secondary">Goods receipts</Button></Link>
         <Link href="/purchasing/orders/new"><Button>New purchase order</Button></Link>
-      </div>
-    </header>
-    <Card title="Orders">
+      </div>}
+    />
+    <Card kicker="Register" title="Orders">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
         : orders === null || orders.items.length === 0
-          ? <EmptyState title="No purchase orders yet" description="Create the first purchase order above." action={<Link href="/purchasing/orders/new"><Button>Create the first order</Button></Link>} />
+          ? <EmptyState title="No purchase orders yet" description="Create the first purchase order to begin tracking supplier commitments." action={<Link href="/purchasing/orders/new"><Button>Create the first order</Button></Link>} />
           : <DataTable label="Purchase orders" headings={['Order', 'Supplier', 'Status', 'Total', 'Created']}>
               {orders.items.map((order) => <tr key={order.id}>
                 <td><Link href={`/purchasing/orders/${order.id}`}>{order.orderNumber}</Link></td>
                 <td>{order.supplier.code} — {order.supplier.name}</td>
                 <td><Badge tone={statusTone(order.status)}>{order.status.replaceAll('_', ' ')}</Badge></td>
-                <td>{order.totalAmount} {order.currency}</td>
+                <td data-money>{order.totalAmount} {order.currency}</td>
                 <td>{new Date(order.createdAt).toLocaleDateString('en-NZ')}</td>
               </tr>)}
             </DataTable>}
