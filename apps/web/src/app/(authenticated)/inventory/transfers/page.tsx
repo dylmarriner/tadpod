@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Button, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { ReverseTransferButton } from '../../../../components/transfer-forms';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
@@ -33,11 +33,11 @@ export default async function TransfersPage() {
       kicker="Inventory"
       title="Warehouse transfers"
       description="Linked warehouse-out and warehouse-in postings, grouped as a single transfer operation."
-      actions={<Link href="/inventory/transfers/new"><Button>Record transfer</Button></Link>}
+      actions={<Link className="button button--primary" href="/inventory/transfers/new">Record transfer</Link>}
     />
     <Card kicker="Movement register" title="Transfers">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
-        : page === null || page.items.length === 0 ? <EmptyState title="No transfers yet" description="Warehouse transfers will appear here once posted." action={<Link href="/inventory/transfers/new"><Button>Record the first transfer</Button></Link>} />
+        : page === null || page.items.length === 0 ? <EmptyState title="No transfers yet" description="Warehouse transfers will appear here once posted." action={<Link className="button button--primary" href="/inventory/transfers/new">Record the first transfer</Link>} />
         : <DataTable label="Warehouse transfers" headings={['Posted', 'Product', 'From', 'To', 'Quantity', 'Notes', 'Actor', 'Reversal']}>
             {page.items.map((item) => <tr key={item.outMovementId}>
               <td>{new Date(item.postedAt).toLocaleString('en-NZ')}</td>
