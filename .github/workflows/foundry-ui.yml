@@ -28,6 +28,8 @@ jobs:
       - run: pnpm --filter @tadpods/ui lint
       - run: pnpm --filter @tadpods/ui typecheck
       - run: pnpm --filter @tadpods/ui test
+      - run: pnpm --filter @tadpods/ui build
+      - run: pnpm --filter @tadpods/contracts build
       - run: pnpm --filter @tadpods/web lint
       - run: pnpm --filter @tadpods/web typecheck
       - run: pnpm --filter @tadpods/web test
