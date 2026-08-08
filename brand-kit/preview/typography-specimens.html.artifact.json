@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "preview/typography-specimens.html",
+  "entry": "preview/typography-specimens.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-08T07:43:54.699Z",
+  "updatedAt": "2026-08-08T07:43:54.699Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

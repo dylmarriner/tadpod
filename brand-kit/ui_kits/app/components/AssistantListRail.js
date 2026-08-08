@@ -1,0 +1,1 @@
+window.AssistantListRail = function AssistantListRail(items) { return '<section class="assistant-list-rail" aria-label="Assistant list rail"><p class="assistant-list-rail__label">Work queues</p>' + (items || []).map(function (item) { return '<a href="' + item.href + '">' + item.label + '</a>'; }).join('') + '</section>'; };

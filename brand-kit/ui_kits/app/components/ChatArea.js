@@ -1,0 +1,1 @@
+window.ChatArea = function ChatArea(title, body) { return '<section class="chat-area" aria-label="Chat area"><header class="chat-area__header"><strong>' + (title || 'Operations assistant') + '</strong></header><div class="chat-area__stream">' + (body || '') + '</div></section>'; };

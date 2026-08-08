@@ -1,0 +1,4 @@
+/* Composable chat area role; included for future assistant/workspace evidence. */
+.chat-area{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:16px;min-width:0;min-height:420px;padding:24px;background:var(--bg)}
+.chat-area__header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.chat-area__stream{display:grid;align-content:start;gap:12px;overflow:auto}.chat-area__empty{display:grid;place-items:center;min-height:220px;color:var(--muted);text-align:center}

@@ -1,0 +1,1 @@
+window.InputBar = function InputBar() { return '<form class="input-bar" aria-label="Operations composer"><input aria-label="Composer text" placeholder="Ask about orders, stock, or accounts"><button type="submit">Send</button></form>'; };

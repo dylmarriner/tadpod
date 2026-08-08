@@ -1,0 +1,6 @@
+/* Source basis: inventory, customers, audit, and statement page snapshots. */
+.data-table-wrap{width:100%;overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
+.data-table{width:100%;min-width:640px;border-collapse:collapse;color:var(--fg)}
+.data-table th,.data-table td{padding:12px 16px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.data-table th{color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.data-table tr:last-child td{border-bottom:0}.data-table__status{display:inline-flex;align-items:center;gap:6px}.data-table__status:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent)}

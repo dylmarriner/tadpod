@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "ui_kits/app/components/assistant-list-rail.html",
+  "entry": "ui_kits/app/components/assistant-list-rail.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-08T07:58:59.902Z",
+  "updatedAt": "2026-08-08T07:58:59.902Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

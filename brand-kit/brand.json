@@ -1,0 +1,164 @@
+{
+  "name": "Tadpod",
+  "tagline": "A signal-first operating surface for the work ahead.",
+  "description": "Tadpod now pairs its restrained blue-and-white foundation with a futuristic instrument-panel posture: dark operational surfaces, sharp data rails, monochrome product imagery, and precise motion.",
+  "sourceUrl": "designmd://tadpod",
+  "seed": {
+    "fontSize": 14,
+    "borderRadius": 8,
+    "sizeUnit": 4,
+    "sizeStep": 4,
+    "controlHeight": 44,
+    "lineWidth": 1,
+    "motionUnit": 0.1,
+    "motionBase": 0,
+    "motion": true
+  },
+  "logo": {
+    "primary": "assets/relx-product-logo.png",
+    "alternates": [
+      "assets/icon-192.png",
+      "assets/icon-512.png",
+      "assets/apple-touch-icon.png"
+    ],
+    "notes": "User-supplied image bound as the primary logo/product identity asset. The source is a monochrome RELX product photograph with smoke on white."
+  },
+  "colors": [
+    {
+      "role": "background",
+      "hex": "#ffffff",
+      "oklch": "",
+      "name": "Background",
+      "usage": "page canvas"
+    },
+    {
+      "role": "foreground",
+      "hex": "#111111",
+      "oklch": "",
+      "name": "Foreground",
+      "usage": "body text and headings"
+    },
+    {
+      "role": "accent",
+      "hex": "#1677ff",
+      "oklch": "",
+      "name": "Accent",
+      "usage": "primary actions and emphasis"
+    },
+    {
+      "role": "surface",
+      "hex": "#f7f8fa",
+      "oklch": "",
+      "name": "Surface",
+      "usage": "cards and panels"
+    },
+    {
+      "role": "muted",
+      "hex": "#6b7280",
+      "oklch": "",
+      "name": "Muted",
+      "usage": "secondary text and metadata"
+    },
+    {
+      "role": "border",
+      "hex": "#d9dee7",
+      "oklch": "",
+      "name": "Border",
+      "usage": "rules and dividers"
+    },
+    {
+      "role": "accent-secondary",
+      "hex": "#6b7280",
+      "oklch": "",
+      "name": "Secondary accent",
+      "usage": "quiet interactive affordances, secondary emphasis, and non-primary navigation states"
+    }
+  ],
+  "typography": {
+    "display": {
+      "family": "Inter",
+      "fallbacks": [
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "Helvetica Neue",
+        "Arial",
+        "sans-serif"
+      ],
+      "weights": [
+        400,
+        700
+      ]
+    },
+    "body": {
+      "family": "Inter",
+      "fallbacks": [
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "Helvetica Neue",
+        "Arial",
+        "sans-serif"
+      ],
+      "weights": [
+        400,
+        700
+      ]
+    }
+  },
+  "voice": {
+    "adjectives": [
+      "clear",
+      "capable",
+      "practical",
+      "precise",
+      "calm"
+    ],
+    "tone": "Clear, capable, direct, and low-drama. Explain the next useful action without overselling.",
+    "messagingPillars": [
+      "Make the useful path obvious.",
+      "Keep the interface quiet so the work stays in focus.",
+      "Use confident defaults and explain the details when they matter."
+    ],
+    "vocabulary": {
+      "use": [
+        "plain-language labels",
+        "specific action verbs",
+        "short explanatory copy",
+        "progressive disclosure"
+      ],
+      "avoid": [
+        "hype and superlatives",
+        "vague product language",
+        "unexplained jargon",
+        "decorative UI without a task"
+      ]
+    }
+  },
+  "imagery": {
+    "style": "High-contrast monochrome product photography with a quiet, atmospheric smoke trace.",
+    "subjects": [
+      "the supplied RELX product image"
+    ],
+    "treatment": "Use the supplied image as a compact identity mark or hero crop; preserve the black object, white field, and smoke. Keep imagery framed, never stretched, and pair it with precise interface chrome.",
+    "avoid": [
+      "invented logos",
+      "generic hero photography",
+      "unverifiable product screenshots"
+    ],
+    "samples": []
+  },
+  "layout": {
+    "radius": "8px",
+    "borderWeight": "1px",
+    "spacing": "8px baseline grid; use 4px only for compact internal gaps",
+    "postureRules": [
+      "Component kit covers Button, Card, Form, Navigation, and data display.",
+      "Touch targets are at least 44px; every focusable control has a visible focus ring.",
+      "Use the accent sparingly for primary actions, selected states, links, and key emphasis.",
+      "Default to 1px borders and 8px corners; avoid soft gradients and ornamental shadows.",
+      "Futuristic expression comes from instrument-panel hierarchy, scan rails, and controlled motion—not decorative noise.",
+      "Keep the supplied product image monochrome and use it as an identity anchor, not a repeated wallpaper."
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "preview/radius-surface.html",
+  "entry": "preview/radius-surface.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-08T07:43:55.493Z",
+  "updatedAt": "2026-08-08T07:43:55.493Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

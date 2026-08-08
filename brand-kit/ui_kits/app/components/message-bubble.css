@@ -1,0 +1,4 @@
+/* Message bubble role: clear author, content, and time hierarchy. */
+.message-bubble{max-width:65ch;padding:12px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--fg)}
+.message-bubble--outgoing{margin-left:auto;background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.message-bubble__meta{display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--muted);font-size:11px}.message-bubble--outgoing .message-bubble__meta{color:var(--border)}
