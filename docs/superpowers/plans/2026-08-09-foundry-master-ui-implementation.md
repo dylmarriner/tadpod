@@ -1,6 +1,6 @@
 # Foundry Master UI Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Execution status:** Foundry implementation is complete on `feat/foundry-master-ui`. Focused UI verification passes. Full-repository typecheck and downstream E2E remain blocked by the pre-existing `@tadpods/api` resolution failure for `@tadpods/documents`.
 
 **Goal:** Replace the shipped TADPODS visual layer with the approved Foundry master UI while preserving existing routes, data flow, permissions and business behaviour.
 
@@ -14,7 +14,7 @@
 - Preserve existing business logic and route contracts.
 - Use warm graphite surfaces, flux amber primary signal, live mint confirmation signal, steel metadata, chamfered geometry and mono telemetry from the supplied Foundry package.
 - Do not introduce mock business data, placeholder records or fake operational counts.
-- Keep touch targets at least 44px and respect `prefers-reduced-motion`.
+- Keep interactive touch targets at least 44px and respect `prefers-reduced-motion`; runtime overrides are enforced in `apps/web/src/app/foundry-a11y.css`.
 - Permissions must continue to determine visible navigation and actions.
 - Existing routes must remain usable throughout the migration.
 
@@ -30,26 +30,29 @@
 - Consumes: React intrinsic element props and existing `Button`, `Badge`, `Card`, `Field`, `TextInput`, `SelectInput`, `ProgressSteps`, `EmptyState`, `DataTable` contracts.
 - Produces: backwards-compatible versions of those components plus `PageHeader`, `Alert`, `Skeleton`, `Tabs`, and `CommandPalette`.
 
-- [ ] **Step 1: Write failing component tests** covering Foundry tone variants, page-header kicker rendering, alert semantics, command-palette dialog semantics, and existing component compatibility.
-- [ ] **Step 2: Run `pnpm --filter @tadpods/ui test`** and confirm the new tests fail before implementation.
-- [ ] **Step 3: Implement the Foundry primitives** with class-based styling hooks so the web app owns runtime CSS while route code remains small.
-- [ ] **Step 4: Run `pnpm --filter @tadpods/ui test`** and confirm the full package test suite passes.
-- [ ] **Step 5: Commit** with `feat(ui): establish Foundry component primitives`.
+- [x] **Step 1: Write failing component tests** covering Foundry tone variants, page-header kicker rendering, alert semantics, command-palette dialog semantics, and existing component compatibility.
+- [x] **Step 2: Run `pnpm --filter @tadpods/ui test`** and confirm the new tests fail before implementation. The focused Foundry workflow produced the expected red result before the primitives existed.
+- [x] **Step 3: Implement the Foundry primitives** with class-based styling hooks so the web app owns runtime CSS while route code remains small.
+- [x] **Step 4: Run `pnpm --filter @tadpods/ui test`** and confirm the full package test suite passes.
+- [x] **Step 5: Commit** the Foundry component primitive implementation.
 
 ### Task 2: Foundry token and surface layer
 
 **Files:**
 - Modify: `apps/web/src/app/globals.css`
+- Add: `apps/web/src/app/foundry-forms.css`
+- Add: `apps/web/src/app/foundry-responsive.css`
+- Add: `apps/web/src/app/foundry-a11y.css`
 
 **Interfaces:**
 - Consumes: class names emitted by `@tadpods/ui` and existing route/form classes already present in `apps/web/src`.
 - Produces: Foundry tokens, graphite canvas, flux/live/steel signals, chamfered controls/panels, table treatment, loading/empty/error states, responsive layout utilities and compatibility styling for existing route markup.
 
-- [ ] **Step 1: Add CSS coverage expectations** to the shell/UI tests for required Foundry class hooks and keep existing accessibility assertions.
-- [ ] **Step 2: Replace legacy light SaaS tokens** with the Foundry token contract from the supplied package.
-- [ ] **Step 3: Restyle existing `.button`, `.badge`, `.card`, `.field`, `.input`, `.progress-steps`, `.empty-state`, `.table-wrap`, `.page-header`, `.grid`, `.login-*` and form utility classes without changing route business code.
-- [ ] **Step 4: Add responsive rules** for desktop, tablet and mobile, including horizontal data overflow and reduced motion.
-- [ ] **Step 5: Commit** with `feat(web): apply Foundry tokens and surfaces`.
+- [x] **Step 1: Add CSS/shell coverage expectations** to the shell/UI tests for required Foundry class hooks and keep accessibility assertions.
+- [x] **Step 2: Replace legacy light SaaS tokens** with the Foundry token contract from the supplied package.
+- [x] **Step 3: Restyle existing controls, cards, fields, inputs, progress, empty states, tables, page headers, grids, login and route-owned business forms without changing business behaviour.
+- [x] **Step 4: Add responsive rules** for desktop, tablet and mobile, including active-domain mobile subnavigation, contained operational tables, 44px interactive targets and reduced motion.
+- [x] **Step 5: Commit** the Foundry token, surface and compatibility layers.
 
 ### Task 3: Foundry application shell
 
@@ -59,43 +62,45 @@
 
 **Interfaces:**
 - Consumes: `user`, `brand`, current pathname, router, permission model, `browserApi('/auth/logout')`.
-- Produces: Foundry spine navigation, command deck, contextual ledger, mobile bottom navigation and reusable command palette.
+- Produces: Foundry spine navigation, command deck, contextual ledger, mobile bottom navigation, active-domain mobile subnavigation and reusable command palette.
 
-- [ ] **Step 1: Extend the AppShell test** to require domain codes (`DB`, `SL`, `PU`, `IN`, `AC`, `RP`, `AD`), command-line semantics, context ledger, permission-aware navigation and the existing skip link.
-- [ ] **Step 2: Run the web component test** and confirm it fails against the legacy sidebar shell.
-- [ ] **Step 3: Implement the shell** using real routes and permissions. Domain flyouts expose existing sub-pages. The ledger may show current module, signed-in user, permission count and keyboard guidance, but must not fabricate stock, sales, event or activity counts.
-- [ ] **Step 4: Promote Ctrl/Cmd+K to the shared `CommandPalette`** and ensure Escape closes it and command results remain permission-aware.
-- [ ] **Step 5: Run web component tests** and confirm the shell test passes.
-- [ ] **Step 6: Commit** with `feat(web): replace app shell with Foundry console`.
+- [x] **Step 1: Extend the AppShell test** to require domain codes (`DB`, `SL`, `PU`, `IN`, `AC`, `RP`, `AD`), command-line semantics, context ledger, permission-aware navigation, Purchasing receipts and the existing skip link.
+- [x] **Step 2: Run the web component test** and confirm it fails against the legacy sidebar shell.
+- [x] **Step 3: Implement the shell** using real routes and permissions without fabricated stock, sales, event or activity counts.
+- [x] **Step 4: Promote Ctrl/Cmd+K to the shared `CommandPalette`** with Escape/arrow/Enter navigation and assistive-technology announcement of the active result.
+- [x] **Step 5: Run web component tests** and confirm the shell tests pass.
+- [x] **Step 6: Commit** the Foundry console shell and responsive navigation.
 
 ### Task 4: Foundry login and route compatibility
 
 **Files:**
-- Modify only if required by tests: `apps/web/src/components/login-form.tsx`
-- Modify only if required by tests: `apps/web/src/app/login/page.tsx`
-- Modify: `apps/web/src/app/globals.css`
+- Modify: `apps/web/src/app/login/page.tsx`
+- Modify: major authenticated route hubs/registers
+- Preserve existing business form mutation logic while applying Foundry shared/compatibility surfaces.
 
 **Interfaces:**
-- Consumes: existing login form API and route behavior.
-- Produces: Foundry sign-in composition and consistent styling for every existing route through shared class contracts.
+- Consumes: existing authentication, route APIs and business workflow behavior.
+- Produces: Foundry sign-in composition and consistent styling for the current application surface.
 
-- [ ] **Step 1: Verify login markup against Foundry class contracts** and add a focused rendering test if markup changes are required.
-- [ ] **Step 2: Implement the Foundry sign-in surface** using only real branding and existing authentication behavior.
-- [ ] **Step 3: Search existing route components for legacy classes** and ensure all remain covered by compatibility styles; do not rewrite business forms merely for cosmetics.
-- [ ] **Step 4: Commit** with `feat(web): complete Foundry login and route compatibility`.
+- [x] **Step 1: Verify login markup against Foundry class contracts.** Existing authentication logic required no behavioral rewrite.
+- [x] **Step 2: Implement the Foundry sign-in surface** using only real branding and existing authentication behavior.
+- [x] **Step 3: Audit current route components for legacy presentation patterns** and cover route-owned tables, fieldsets, product option lists and action rows through Foundry compatibility styling.
+- [x] **Step 4: Migrate the major application hubs/registers** across dashboard, accounts, sales, purchasing, inventory, reports and administration.
 
 ### Task 5: Verification and review
 
 **Files:**
-- Modify tests only when a genuine regression is found.
+- `.github/workflows/foundry-ui.yml`
+- Tests and implementation files only where a genuine review issue was verified.
 
 **Interfaces:**
 - Consumes: all prior tasks.
-- Produces: a branch that passes repository verification and is ready for review/merge.
+- Produces: a review-ready Foundry branch with independently verifiable UI quality gates.
 
-- [ ] **Step 1: Run `pnpm lint`** and resolve Foundry-related failures.
-- [ ] **Step 2: Run `pnpm typecheck`** and resolve Foundry-related failures.
-- [ ] **Step 3: Run `pnpm test`** and resolve regressions.
-- [ ] **Step 4: Run `pnpm build`** and resolve production-build failures.
-- [ ] **Step 5: Run the existing Playwright smoke tests** where CI services support them.
-- [ ] **Step 6: Open a pull request** with the Foundry migration summary, verification evidence and any remaining non-UI backend wiring explicitly excluded from scope.
+- [x] **Step 1: Run lint checks.** Foundry UI, contracts and web lint pass in the focused workflow; the full repository workflow also completed lint before reaching its unrelated API typecheck failure.
+- [ ] **Step 2: Run full `pnpm typecheck`.** Foundry UI/web typecheck passes. Full repository typecheck is blocked by the pre-existing `@tadpods/api` failure to resolve `@tadpods/documents`.
+- [x] **Step 3: Run UI/web tests** and resolve Foundry regressions.
+- [x] **Step 4: Run the production web build** and resolve Foundry build failures.
+- [ ] **Step 5: Run existing Playwright smoke tests.** Not reached by the full repository workflow because the pre-existing API typecheck fails first; no E2E success is claimed.
+- [x] **Step 6: Open pull request #3** with the Foundry migration summary and verification evidence.
+- [x] **Step 7: Review the PR** with Codex/CodeRabbit, verify findings against the current codebase, and apply the valid navigation, accessibility, CI-hardening and responsive fixes.
