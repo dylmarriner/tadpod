@@ -130,7 +130,11 @@ export class SupplierBillsService {
       if (draftLines.length === 0) throw new BadRequestException('There is nothing unbilled to bill on this order');
 
       for (const line of draftLines) {
-        validateBillLineQuantity({ receivedQuantity: line.orderLine.receivedQuantity.toString(), billedQuantity: line.orderLine.billedQuantity.toString() }, line.quantity);
+        try {
+          validateBillLineQuantity({ receivedQuantity: line.orderLine.receivedQuantity.toString(), billedQuantity: line.orderLine.billedQuantity.toString() }, line.quantity);
+        } catch (error) {
+          throw new BadRequestException(error instanceof Error ? error.message : 'Invalid bill line quantity');
+        }
       }
 
       const issueDate = input.issueDate ? new Date(input.issueDate) : new Date();

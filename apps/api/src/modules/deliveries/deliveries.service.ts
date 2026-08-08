@@ -100,7 +100,13 @@ export class DeliveriesService {
 
       for (const plannedLine of planned) {
         const source = deliverableLines.find((line) => line.salesOrderLineId === plannedLine.salesOrderLineId);
-        if (source) validateDeliveryQuantity(source, plannedLine.quantity);
+        if (source) {
+          try {
+            validateDeliveryQuantity(source, plannedLine.quantity);
+          } catch (error) {
+            throw new BadRequestException(error instanceof Error ? error.message : 'Invalid delivery quantity');
+          }
+        }
       }
 
       const deliveryNumber = await nextDocumentNumber('delivery');
@@ -137,42 +143,57 @@ export class DeliveriesService {
       delivery.lines.map((line) => ({ id: line.id, productId: line.productId, quantity: line.quantity.toString() }))
     ).map((movement) => ({ ...movement, idempotencyKey: `${input.idempotencyKey}:${movement.sourceLineId}`, notes: null, allowNegativeStockOverride: false }));
 
-    await this.posting.postMovements(movements, actor, context);
+    const posted = await this.posting.postMovements(movements, actor, context);
 
-    return withTransaction(async (transaction) => {
-      for (const line of delivery.lines) {
-        const quantity = Quantity.from(line.quantity.toString());
-        const salesOrderLine = await transaction.salesOrderLine.findUniqueOrThrow({ where: { id: line.salesOrderLineId } });
+    try {
+      return await withTransaction(async (transaction) => {
+        for (const line of delivery.lines) {
+          const quantity = Quantity.from(line.quantity.toString());
+          const salesOrderLine = await transaction.salesOrderLine.findUniqueOrThrow({ where: { id: line.salesOrderLineId } });
 
-        await lockStockKey(transaction, line.productId, delivery.warehouseId);
-        const consumption = planReservationConsumption(salesOrderLine.reservedQuantity.toString(), quantity.toDecimalString());
-        if (Quantity.from(consumption.consumedReservationQuantity).isPositive()) {
-          const reservations = await transaction.stockReservation.findMany({
-            where: { salesOrderLineId: line.salesOrderLineId, status: 'ACTIVE' },
-            orderBy: { createdAt: 'asc' }
-          });
-          let remaining = Quantity.from(consumption.consumedReservationQuantity);
-          for (const reservation of reservations) {
-            if (!remaining.isPositive()) break;
-            const reservedQuantity = Quantity.from(reservation.quantity.toString());
-            const take = reservedQuantity.lessThan(remaining) ? reservedQuantity : remaining;
-            await consumeReservation(transaction, reservation.id, take);
-            remaining = remaining.subtract(take);
+          await lockStockKey(transaction, line.productId, delivery.warehouseId);
+          const consumption = planReservationConsumption(salesOrderLine.reservedQuantity.toString(), quantity.toDecimalString());
+          if (Quantity.from(consumption.consumedReservationQuantity).isPositive()) {
+            const reservations = await transaction.stockReservation.findMany({
+              where: { salesOrderLineId: line.salesOrderLineId, status: 'ACTIVE' },
+              orderBy: { createdAt: 'asc' }
+            });
+            let remaining = Quantity.from(consumption.consumedReservationQuantity);
+            for (const reservation of reservations) {
+              if (!remaining.isPositive()) break;
+              const reservedQuantity = Quantity.from(reservation.quantity.toString());
+              const take = reservedQuantity.lessThan(remaining) ? reservedQuantity : remaining;
+              await consumeReservation(transaction, reservation.id, take);
+              remaining = remaining.subtract(take);
+            }
           }
+
+          await transaction.salesOrderLine.update({ where: { id: line.salesOrderLineId }, data: { deliveredQuantity: { increment: quantity.toDecimalString() } } });
         }
 
-        await transaction.salesOrderLine.update({ where: { id: line.salesOrderLineId }, data: { deliveredQuantity: { increment: quantity.toDecimalString() } } });
-      }
-
-      await this.refreshOrderStatus(transaction, delivery.salesOrderId);
-      const updated = await transaction.delivery.update({
-        where: { id },
-        data: { status: 'POSTED', postedById: actor.id, postedAt: new Date() },
-        include: deliveryInclude
+        await this.refreshOrderStatus(transaction, delivery.salesOrderId);
+        const updated = await transaction.delivery.update({
+          where: { id },
+          data: { status: 'POSTED', postedById: actor.id, postedAt: new Date() },
+          include: deliveryInclude
+        });
+        await this.audit(transaction, 'delivery.post', id, actor, context, { salesOrderId: delivery.salesOrderId, lineCount: delivery.lines.length });
+        return toDelivery(updated);
       });
-      await this.audit(transaction, 'delivery.post', id, actor, context, { salesOrderId: delivery.salesOrderId, lineCount: delivery.lines.length });
-      return toDelivery(updated);
-    });
+    } catch (error) {
+      // The stock movements above are already durably committed (they run in their own
+      // transaction via StockPostingService). If order/reservation state fails to update after
+      // that, the delivery must not stay stuck DRAFT with stock silently gone — compensate by
+      // reversing exactly the movements this call posted, so the delivery is safely re-postable
+      // and stock-on-hand reflects reality again.
+      await this.posting.reverseMovements(
+        posted.map((movement) => movement.id),
+        { idempotencyKey: `${input.idempotencyKey}:compensating-reversal`, notes: 'Automatic reversal: delivery post failed after stock was committed' },
+        actor,
+        context
+      );
+      throw error;
+    }
   }
 
   /** Reverse every stock effect a posted delivery created, atomically, and decrement the order lines it advanced. */
