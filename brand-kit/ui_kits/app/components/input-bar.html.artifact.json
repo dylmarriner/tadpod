@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "ui_kits/app/components/input-bar.html",
+  "entry": "ui_kits/app/components/input-bar.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-08T07:59:01.404Z",
+  "updatedAt": "2026-08-08T07:59:01.404Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

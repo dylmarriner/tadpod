@@ -1,0 +1,26 @@
+{
+  "candidateId": "612a3ab2-869a-4db5-b229-36d86991ff25",
+  "projectId": "brand-tadpod-a6b47f",
+  "runId": "f0f21ff1-0305-4d3f-82a7-462ebda4c8b3",
+  "conversationId": "bb28f1bf-b035-415f-ac7f-38b3bb06e5ba",
+  "provenance": {
+    "summary": "Detected from SKILL.md, ui_kits/app/README.md after a successful run.",
+    "detectedAt": 1786176534341
+  },
+  "sourceRefs": [
+    {
+      "kind": "file",
+      "value": "SKILL.md",
+      "label": "SKILL.md",
+      "size": 1648,
+      "copied": true
+    },
+    {
+      "kind": "file",
+      "value": "ui_kits/app/README.md",
+      "label": "ui_kits/app/README.md",
+      "size": 2332,
+      "copied": true
+    }
+  ]
+}

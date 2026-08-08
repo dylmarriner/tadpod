@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "composio": {
+      "command": "node",
+      "args": [
+        "/home/kubuntux/.local/share/composio-mcp/node_modules/composio-mcp/index.js"
+      ],
+      "env": {
+        "COMPOSIO_API_KEY": "ak_QHn87_k_iwcN6GxGBb-4",
+        "COMPOSIO_TOOLKITS": "github"
+      }
+    }
+  }
+}

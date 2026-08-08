@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "system/artifacts/newsletter.html",
+  "entry": "system/artifacts/newsletter.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-08T07:41:22.211Z",
+  "updatedAt": "2026-08-08T07:41:22.211Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

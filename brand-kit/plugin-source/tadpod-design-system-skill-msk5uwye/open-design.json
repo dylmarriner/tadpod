@@ -1,0 +1,22 @@
+{
+  "$schema": "https://open-design.ai/schemas/plugin.v1.json",
+  "specVersion": "1.0.0",
+  "name": "tadpod-design-system-skill-msk5uwye",
+  "title": "Tadpod design system skill",
+  "version": "0.1.0",
+  "description": "--- name: tadpod-design-system description: Build clear Tadpod web interfaces using the extracted tokens, type, voice, and component posture. user-invocable: true ---",
+  "od": {
+    "kind": "skill",
+    "taskKind": "new-generation",
+    "context": {
+      "skills": [
+        {
+          "path": "./SKILL.md"
+        }
+      ]
+    },
+    "capabilities": [
+      "prompt:inject"
+    ]
+  }
+}

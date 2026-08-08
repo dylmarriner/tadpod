@@ -1,0 +1,4 @@
+/* Reserved source-backed list rail role for future workspace surfaces. */
+.assistant-list-rail{display:grid;align-content:start;gap:8px;padding:16px;border-right:1px solid var(--border);background:var(--surface)}
+.assistant-list-rail__label{margin:0 0 8px;color:var(--muted);font:11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase}
+.assistant-list-rail a{min-height:44px;padding:10px;border:1px solid transparent;border-radius:8px;color:var(--fg);text-decoration:none}.assistant-list-rail a:hover{border-color:var(--border);background:var(--bg)}.assistant-list-rail a[aria-current=page]{border-color:var(--accent);color:var(--accent);background:var(--bg)}

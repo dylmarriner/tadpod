@@ -1,0 +1,1 @@
+window.MessageBubble = function MessageBubble(author, text, outgoing) { return '<div class="message-bubble' + (outgoing ? ' message-bubble--outgoing' : '') + '" role="article"><div class="message-bubble__meta"><strong>' + author + '</strong></div><div>' + text + '</div></div>'; };

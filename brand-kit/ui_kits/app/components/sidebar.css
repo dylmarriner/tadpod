@@ -1,0 +1,7 @@
+/* Source basis: app-shell navigation sections and permission-aware routes. */
+.sidebar-nav{display:grid;gap:4px;margin-top:24px}
+.sidebar-nav__label{margin:0 0 8px;color:var(--muted);font:11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+.sidebar-nav a,.sidebar-nav button{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--bg);text-decoration:none;text-align:left}
+.sidebar-nav a:hover,.sidebar-nav button:hover{border-color:var(--border);background:var(--muted);color:var(--bg)}
+.sidebar-nav a[aria-current=page]{border-color:var(--accent);background:var(--accent);color:var(--bg)}
+.sidebar-nav button:disabled{cursor:not-allowed;opacity:.55}

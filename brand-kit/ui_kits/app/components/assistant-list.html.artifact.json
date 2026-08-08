@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "ui_kits/app/components/assistant-list.html",
+  "entry": "ui_kits/app/components/assistant-list.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-08T08:02:19.740Z",
+  "updatedAt": "2026-08-08T08:02:19.740Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}
