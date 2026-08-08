@@ -33,3 +33,4 @@ jobs:
       - run: pnpm --filter @tadpods/web lint
       - run: pnpm --filter @tadpods/web typecheck
       - run: pnpm --filter @tadpods/web test
+      - run: pnpm --filter @tadpods/web build
