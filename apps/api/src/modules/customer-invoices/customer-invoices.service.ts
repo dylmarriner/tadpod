@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import {
   computeCustomerInvoiceOutstandingMinorUnits,
   computeLineNetMinorUnits,
+  computeLineTaxMinorUnits,
   computeUninvoicedQuantity,
   deriveCustomerInvoiceDisplayStatus,
   deriveSalesOrderInvoicingStatus,
@@ -20,7 +21,7 @@ const invoiceInclude = {
   salesOrder: { select: { id: true, orderNumber: true } },
   createdBy: { select: { id: true, displayName: true, email: true } },
   voidedBy: { select: { id: true, displayName: true, email: true } },
-  lines: { include: { product: { select: { id: true, sku: true, name: true } } } },
+  lines: { include: { product: { select: { id: true, sku: true, name: true } }, taxRate: { select: { id: true, code: true, name: true, rateBasis: true } } } },
   paymentAllocations: { where: { reversedAt: null } },
   creditApplications: { where: { reversedAt: null } }
 } satisfies PrismaNamespace.CustomerInvoiceInclude;
@@ -28,7 +29,15 @@ const invoiceInclude = {
 type InvoiceWithRelations = PrismaNamespace.CustomerInvoiceGetPayload<{ include: typeof invoiceInclude }>;
 
 function toInvoice(row: InvoiceWithRelations): CustomerInvoice {
-  const totalMinorUnits = row.lines.reduce((sum, line) => sum + computeLineNetMinorUnits(line.unitPriceMinorUnits, line.quantity.toString(), line.discountPercentBasis), 0n);
+  const lineFigures = row.lines.map((line) => {
+    const netMinorUnits = computeLineNetMinorUnits(line.unitPriceMinorUnits, line.quantity.toString(), line.discountPercentBasis);
+    // taxAmountMinorUnits is the snapshotted, already-posted figure — never recomputed live,
+    // so a later change to the tax rate's percentage cannot retroactively change this invoice.
+    return { line, netMinorUnits, taxMinorUnits: line.taxAmountMinorUnits };
+  });
+  const subtotalMinorUnits = lineFigures.reduce((sum, { netMinorUnits }) => sum + netMinorUnits, 0n);
+  const taxMinorUnits = lineFigures.reduce((sum, { taxMinorUnits }) => sum + taxMinorUnits, 0n);
+  const totalMinorUnits = subtotalMinorUnits + taxMinorUnits;
   const appliedMinorUnits =
     row.paymentAllocations.reduce((sum, allocation) => sum + allocation.amountMinorUnits, 0n) +
     row.creditApplications.reduce((sum, application) => sum + application.amountMinorUnits, 0n);
@@ -45,6 +54,8 @@ function toInvoice(row: InvoiceWithRelations): CustomerInvoice {
     issueDate: row.issueDate.toISOString(),
     dueDate: row.dueDate.toISOString(),
     notes: row.notes,
+    subtotalAmount: Money.from(subtotalMinorUnits, row.currency).toDecimalString(),
+    taxAmount: Money.from(taxMinorUnits, row.currency).toDecimalString(),
     totalAmount: Money.from(totalMinorUnits, row.currency).toDecimalString(),
     appliedAmount: Money.from(appliedMinorUnits, row.currency).toDecimalString(),
     outstandingAmount: Money.from(outstandingMinorUnits, row.currency).toDecimalString(),
@@ -53,14 +64,17 @@ function toInvoice(row: InvoiceWithRelations): CustomerInvoice {
     voidedAt: row.voidedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    lines: row.lines.map((line) => ({
+    lines: lineFigures.map(({ line, netMinorUnits, taxMinorUnits: lineTaxMinorUnits }) => ({
       id: line.id,
       salesOrderLineId: line.salesOrderLineId,
       product: line.product,
       unitPrice: Money.from(line.unitPriceMinorUnits, row.currency).toDecimalString(),
       discountPercentBasis: line.discountPercentBasis,
       quantity: line.quantity.toString(),
-      lineTotal: Money.from(computeLineNetMinorUnits(line.unitPriceMinorUnits, line.quantity.toString(), line.discountPercentBasis), row.currency).toDecimalString()
+      netAmount: Money.from(netMinorUnits, row.currency).toDecimalString(),
+      taxRate: line.taxRate ? { id: line.taxRate.id, code: line.taxRate.code, name: line.taxRate.name, ratePercent: (line.taxRate.rateBasis / 10_000).toFixed(2) } : null,
+      taxAmount: Money.from(lineTaxMinorUnits, row.currency).toDecimalString(),
+      lineTotal: Money.from(netMinorUnits + lineTaxMinorUnits, row.currency).toDecimalString()
     }))
   };
 }
@@ -142,6 +156,16 @@ export class CustomerInvoicesService {
         validateInvoiceLineQuantity({ deliveredQuantity: line.orderLine.deliveredQuantity.toString(), invoicedQuantity: line.orderLine.invoicedQuantity.toString() }, line.quantity);
       }
 
+      // Tax is snapshotted from each product's current tax rate at invoice-creation time, not
+      // looked up live on every read — so a later change to the rate's percentage never
+      // retroactively changes an already-posted invoice's total.
+      const productIds = [...new Set(draftLines.map((line) => line.orderLine.productId))];
+      const products = await transaction.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, taxRateId: true, taxRate: { select: { rateBasis: true } } }
+      });
+      const productById = new Map(products.map((product) => [product.id, product]));
+
       const issueDate = input.issueDate ? new Date(input.issueDate) : new Date();
       const dueDate = input.dueDate ? new Date(input.dueDate) : new Date(issueDate.getTime() + order.customer.paymentTermsDays * DAY_MS);
       const invoiceNumber = await nextDocumentNumber('customer-invoice');
@@ -157,13 +181,20 @@ export class CustomerInvoicesService {
           notes: input.notes ?? null,
           createdById: actor.id,
           lines: {
-            create: draftLines.map((line) => ({
-              salesOrderLineId: line.orderLine.id,
-              productId: line.orderLine.productId,
-              unitPriceMinorUnits: line.orderLine.unitPriceMinorUnits,
-              discountPercentBasis: line.orderLine.discountPercentBasis,
-              quantity: line.quantity
-            }))
+            create: draftLines.map((line) => {
+              const netMinorUnits = computeLineNetMinorUnits(line.orderLine.unitPriceMinorUnits, line.quantity, line.orderLine.discountPercentBasis);
+              const product = productById.get(line.orderLine.productId);
+              const taxAmountMinorUnits = product?.taxRate ? computeLineTaxMinorUnits(netMinorUnits, product.taxRate.rateBasis) : 0n;
+              return {
+                salesOrderLineId: line.orderLine.id,
+                productId: line.orderLine.productId,
+                unitPriceMinorUnits: line.orderLine.unitPriceMinorUnits,
+                discountPercentBasis: line.orderLine.discountPercentBasis,
+                quantity: line.quantity,
+                taxRateId: product?.taxRateId ?? null,
+                taxAmountMinorUnits
+              };
+            })
           }
         },
         include: invoiceInclude

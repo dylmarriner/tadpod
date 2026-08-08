@@ -4,10 +4,13 @@ import { VoidInvoiceButton } from '../../../../../components/customer-invoice-fo
 import { serverApi } from '../../../../../lib/server-api';
 import { apiUrl, ApiError } from '../../../../../lib/api';
 
-type Line = { id: string; product: { sku: string; name: string }; unitPrice: string; quantity: string; lineTotal: string };
+type Line = {
+  id: string; product: { sku: string; name: string }; unitPrice: string; quantity: string; netAmount: string;
+  taxRate: { code: string; name: string; ratePercent: string } | null; taxAmount: string; lineTotal: string;
+};
 type Invoice = {
   id: string; invoiceNumber: string; status: string; displayStatus: string; currency: string; issueDate: string; dueDate: string; notes: string | null;
-  totalAmount: string; appliedAmount: string; outstandingAmount: string;
+  subtotalAmount: string; taxAmount: string; totalAmount: string; appliedAmount: string; outstandingAmount: string;
   customer: { id: string; code: string; name: string };
   salesOrder: { id: string; orderNumber: string };
   createdBy: { displayName: string };
@@ -54,6 +57,8 @@ export default async function CustomerInvoiceDetailPage({ params }: { params: Pr
     <div className="grid grid--2">
       <Card title="Summary">
         <dl className="definition-list">
+          <div><dt>Subtotal</dt><dd>{invoice.subtotalAmount} {invoice.currency}</dd></div>
+          <div><dt>Tax</dt><dd>{invoice.taxAmount} {invoice.currency}</dd></div>
           <div><dt>Total</dt><dd>{invoice.totalAmount} {invoice.currency}</dd></div>
           <div><dt>Applied (paid + credited)</dt><dd>{invoice.appliedAmount}</dd></div>
           <div><dt>Outstanding</dt><dd>{invoice.outstandingAmount}</dd></div>
@@ -75,11 +80,12 @@ export default async function CustomerInvoiceDetailPage({ params }: { params: Pr
       <Card title="Lines">
         {invoice.lines.length === 0
           ? <EmptyState title="No lines" description="This invoice has no lines." />
-          : <DataTable label="Invoice lines" headings={['Product', 'Unit price', 'Quantity', 'Line total']}>
+          : <DataTable label="Invoice lines" headings={['Product', 'Unit price', 'Quantity', 'Tax', 'Line total']}>
               {invoice.lines.map((line) => <tr key={line.id}>
                 <td><strong>{line.product.sku}</strong><div className="muted">{line.product.name}</div></td>
                 <td>{line.unitPrice}</td>
                 <td>{line.quantity}</td>
+                <td>{line.taxRate ? `${line.taxRate.name} (${line.taxAmount})` : '—'}</td>
                 <td>{line.lineTotal}</td>
               </tr>)}
             </DataTable>}

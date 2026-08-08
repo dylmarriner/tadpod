@@ -226,6 +226,7 @@ model TaxRate {
   createdAt DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @db.Timestamptz(6)
   products  Product[]
+  customerInvoiceLines CustomerInvoiceLine[]
 }
 
 model Attachment {
@@ -1212,15 +1213,22 @@ model CustomerInvoiceLine {
   unitPriceMinorUnits  BigInt
   discountPercentBasis Int      @default(0)
   quantity             Decimal  @db.Decimal(18, 4)
+  /// Snapshotted from the product's tax rate at invoice-creation time, not looked up live, so a
+  /// later change to the tax rate's percentage never retroactively changes an already-posted
+  /// invoice's total.
+  taxRateId            String?  @db.Uuid
+  taxAmountMinorUnits  BigInt   @default(0)
   createdAt            DateTime @default(now()) @db.Timestamptz(6)
 
   customerInvoice CustomerInvoice @relation(fields: [customerInvoiceId], references: [id], onDelete: Cascade)
   salesOrderLine  SalesOrderLine  @relation(fields: [salesOrderLineId], references: [id], onDelete: Restrict)
   product         Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  taxRate         TaxRate?        @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
 
   @@unique([customerInvoiceId, salesOrderLineId])
   @@index([customerInvoiceId])
   @@index([salesOrderLineId])
+  @@index([taxRateId])
 }
 
 /// A payment is recorded once, in full, against the customer account — never pre-split across

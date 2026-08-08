@@ -105,7 +105,24 @@ export function planReservationConsumption(reservedQuantity: string, deliveryQua
   };
 }
 
+/** Still returnable on a posted delivery line: what was delivered minus what has already been returned. */
+export function computeReturnableQuantity(deliveredQuantity: string, alreadyReturnedQuantity: string): string {
+  const returnable = Quantity.from(deliveredQuantity).subtract(Quantity.from(alreadyReturnedQuantity));
+  return (returnable.isNegative() ? Quantity.zero() : returnable).toDecimalString();
+}
+
+/** Reject a customer return that would return more of a delivery line than was ever delivered. */
+export function validateReturnQuantity(deliveredQuantity: string, alreadyReturnedQuantity: string, quantity: string): void {
+  const requested = Quantity.from(quantity);
+  if (!requested.isPositive()) throw new Error('Return quantity must be greater than zero');
+  const returnable = Quantity.from(computeReturnableQuantity(deliveredQuantity, alreadyReturnedQuantity));
+  if (requested.greaterThan(returnable)) {
+    throw new Error(`Returning ${requested.toDecimalString()} would exceed the ${returnable.toDecimalString()} still returnable on this delivery line`);
+  }
+}
+
 export const DELIVERY_SOURCE_TYPE = 'delivery-line';
+export const CUSTOMER_RETURN_SOURCE_TYPE = 'customer-return';
 
 export type DeliveryMovementInput = {
   productId: string;

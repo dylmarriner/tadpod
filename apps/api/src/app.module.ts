@@ -13,6 +13,7 @@ import { CustomersModule } from './modules/customers/customers.module.js';
 import { SalesOrdersModule } from './modules/sales-orders/sales-orders.module.js';
 import { ReservationsModule } from './modules/reservations/reservations.module.js';
 import { DeliveriesModule } from './modules/deliveries/deliveries.module.js';
+import { CustomerReturnsModule } from './modules/customer-returns/customer-returns.module.js';
 import { BackordersModule } from './modules/backorders/backorders.module.js';
 import { CustomerInvoicesModule } from './modules/customer-invoices/customer-invoices.module.js';
 import { CustomerPaymentsModule } from './modules/customer-payments/customer-payments.module.js';
@@ -39,6 +40,7 @@ import { APP_ENVIRONMENT } from './platform.tokens.js';
     SalesOrdersModule,
     ReservationsModule,
     DeliveriesModule,
+    CustomerReturnsModule,
     BackordersModule,
     CustomerInvoicesModule,
     CustomerPaymentsModule,

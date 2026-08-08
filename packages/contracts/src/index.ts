@@ -13,6 +13,7 @@ export * from './customers.js';
 export * from './sales-orders.js';
 export * from './reservations.js';
 export * from './deliveries.js';
+export * from './customer-returns.js';
 export * from './backorders.js';
 export * from './customer-invoices.js';
 export * from './customer-payments.js';

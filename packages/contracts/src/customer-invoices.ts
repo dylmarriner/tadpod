@@ -34,6 +34,7 @@ const invoiceProductRefSchema = z.object({ id: z.string().uuid(), sku: z.string(
 const invoiceActorRefSchema = z.object({ id: z.string().uuid(), displayName: z.string(), email: z.string() });
 const invoiceCustomerRefSchema = z.object({ id: z.string().uuid(), code: z.string(), name: z.string() });
 const invoiceSalesOrderRefSchema = z.object({ id: z.string().uuid(), orderNumber: z.string() });
+const invoiceTaxRateRefSchema = z.object({ id: z.string().uuid(), code: z.string(), name: z.string(), ratePercent: z.string() });
 
 export const customerInvoiceLineSchema = z.object({
   id: z.string().uuid(),
@@ -42,6 +43,11 @@ export const customerInvoiceLineSchema = z.object({
   unitPrice: moneyAmountSchema,
   discountPercentBasis: z.number().int(),
   quantity: quantityAmountSchema,
+  /** Net of discount, before tax. */
+  netAmount: moneyAmountSchema,
+  taxRate: invoiceTaxRateRefSchema.nullable(),
+  taxAmount: moneyAmountSchema,
+  /** Net plus tax — what this line contributes to the invoice total. */
   lineTotal: moneyAmountSchema
 });
 export type CustomerInvoiceLine = z.infer<typeof customerInvoiceLineSchema>;
@@ -57,6 +63,8 @@ export const customerInvoiceSchema = z.object({
   issueDate: z.string().datetime(),
   dueDate: z.string().datetime(),
   notes: z.string().nullable(),
+  subtotalAmount: moneyAmountSchema,
+  taxAmount: moneyAmountSchema,
   totalAmount: moneyAmountSchema,
   appliedAmount: moneyAmountSchema,
   outstandingAmount: moneyAmountSchema,

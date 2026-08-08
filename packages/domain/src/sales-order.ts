@@ -170,6 +170,16 @@ export function computeLineNetMinorUnits(unitPriceMinorUnits: bigint, quantity: 
   return gross - discount;
 }
 
+/**
+ * Tax on a line's net (post-discount) amount, using the same basis-per-million scale as
+ * `TaxRate.rateBasis` (e.g. `150000` = 15%) — the same scale `discountPercentBasis` uses, so a
+ * rate is applied with the identical rounded-half-away-from-zero arithmetic as a discount.
+ */
+export function computeLineTaxMinorUnits(netMinorUnits: bigint, rateBasis: number): bigint {
+  if (!Number.isInteger(rateBasis) || rateBasis < 0) throw new Error('Tax rate basis must be a non-negative integer');
+  return roundedDivide(netMinorUnits * BigInt(rateBasis), DISCOUNT_BASIS_SCALE);
+}
+
 export function computeSalesOrderTotalMinorUnits(
   lines: readonly { unitPriceMinorUnits: bigint; orderedQuantity: string; discountPercentBasis?: number }[]
 ): bigint {
