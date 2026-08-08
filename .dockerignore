@@ -1,9 +1,13 @@
 node_modules
 **/node_modules
+.turbo
+**/.turbo
 .next
 **/.next
 dist
 **/dist
+*.tsbuildinfo
+**/*.tsbuildinfo
 coverage
 .git
 .env

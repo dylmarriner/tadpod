@@ -7,14 +7,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     ...devices['Desktop Chrome']
   },
   webServer: [
     {
       command: 'pnpm --filter @tadpods/api start',
-      url: 'http://127.0.0.1:4000/health',
+      url: 'http://localhost:4000/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       stdout: 'pipe',
@@ -23,12 +23,14 @@ export default defineConfig({
         ...process.env,
         NODE_ENV: 'test',
         API_PORT: '4000',
-        CORS_ORIGIN: 'http://127.0.0.1:3000'
+        CORS_ORIGIN: 'http://localhost:3000'
       }
     },
     {
+      // NEXT_PUBLIC_API_URL is inlined at `pnpm build` time, not read by `next start` —
+      // it must match whatever the already-built .next output was compiled with (see .env).
       command: 'pnpm --filter @tadpods/web start',
-      url: 'http://127.0.0.1:3000/login',
+      url: 'http://localhost:3000/login',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       stdout: 'pipe',
@@ -36,8 +38,7 @@ export default defineConfig({
       env: {
         ...process.env,
         NODE_ENV: 'production',
-        NEXT_PUBLIC_API_URL: 'http://127.0.0.1:4000',
-        API_URL: 'http://127.0.0.1:4000'
+        API_URL: 'http://localhost:4000'
       }
     }
   ]
