@@ -1,74 +1,86 @@
 ---
-name: "Tadpod"
-category: Brands
+name: "TADPODS Foundry"
+category: Business operations
 surface: web
 colors:
-  background: "#ffffff"
-  foreground: "#111111"
-  accent: "#1677ff"
-  surface: "#f7f8fa"
-  muted: "#6b7280"
-  border: "#d9dee7"
-  secondary-accent: "#6b7280"
+  background: "#08080A"
+  foreground: "#F7F6F3"
+  accent: "#FF9E2C"
+  live: "#2DD4BF"
+  metadata: "#8AA9C4"
+  surface: "#141416"
+  border: "#303036"
 ---
 
-# Tadpod
+# TADPODS Foundry
 
-> Category: Brands
+*A machined operating surface for sales, purchasing, inventory and accounts.*
 
-> Surface: web
+Foundry is the master UI system for TADPODS. It is intentionally unlike a generic accounting dashboard: dark graphite operational surfaces, precise data rails, high-signal amber actions, mint live state, steel metadata and restrained industrial geometry.
 
-*A signal-first operating surface for the work ahead.*
+## Colour contract
 
-Tadpod now pairs its restrained blue-and-white foundation with a futuristic instrument-panel posture: dark operational surfaces, sharp data rails, monochrome product imagery, and precise motion.
-
-## Color Palette
-
-| Role | Name | Hex | Usage |
+| Role | Token | Hex | Usage |
 | --- | --- | --- | --- |
-| background | Background | `#ffffff` | page canvas |
-| foreground | Foreground | `#111111` | body text and headings |
-| accent | Accent | `#1677ff` | primary actions and emphasis |
-| surface | Surface | `#f7f8fa` | cards and panels |
-| muted | Muted | `#6b7280` | secondary text and metadata |
-| border | Border | `#d9dee7` | rules and dividers |
-| accent-secondary | Secondary accent | `#6b7280` | quiet interactive affordances, secondary emphasis, and non-primary navigation states |
+| canvas | Graphite 950 | `#08080A` | application canvas |
+| surface | Graphite 850 | `#141416` | cards and primary panels |
+| raised surface | Graphite 800 | `#1A1A1D` | menus, interactive regions |
+| foreground | Ink 0 | `#F7F6F3` | primary copy |
+| secondary copy | Ink 2 | `#8D8A85` | helper text and metadata |
+| border | Line 1 | `#303036` | rules and panel boundaries |
+| primary signal | Flux | `#FF9E2C` | primary actions, current workflow state, focused operational signal |
+| live signal | Live | `#2DD4BF` | active/live/healthy state |
+| metadata signal | Steel | `#8AA9C4` | neutral information and secondary system state |
+| danger | Danger | `#FF5A45` | destructive/error states |
+| warning | Warning | `#FFD166` | attention states |
+
+Tenant branding may be exposed as metadata or branded-document styling. It does not replace Foundry's Flux/Live control language inside the application shell.
 
 ## Typography
-- **Display:** Inter — weights 400, 700 — fallbacks: system-ui, -apple-system, Segoe UI, Helvetica Neue, Arial, sans-serif
-- **Body:** Inter — weights 400, 700 — fallbacks: system-ui, -apple-system, Segoe UI, Helvetica Neue, Arial, sans-serif
 
-## Voice & Tone
+- **Interface copy:** Inter, system fallbacks.
+- **Telemetry:** system monospace stack.
+- **Money, quantities, document numbers, keyboard hints and domain codes:** monospace with tabular numerals where applicable.
+- **Kickers and system labels:** compact uppercase monospace with tracking.
 
-- **Adjectives:** clear, capable, practical, precise, calm
-- **Tone:** Clear, capable, direct, and low-drama. Explain the next useful action without overselling.
+## Geometry
 
-### Messaging pillars
-- Make the useful path obvious.
-- Keep the interface quiet so the work stays in focus.
-- Use confident defaults and explain the details when they matter.
+- 1px operational boundaries.
+- Chamfered panels and controls using clipped corners instead of soft rounded cards.
+- 44px minimum default control height.
+- Shadows are restrained and mostly reserved for overlays/flyouts.
+- The shell uses a narrow domain spine, central work deck and contextual ledger on wide screens.
 
-### Vocabulary
-- **Use:** plain-language labels, specific action verbs, short explanatory copy, progressive disclosure
-- **Avoid:** hype and superlatives, vague product language, unexplained jargon, decorative UI without a task
+## Domain navigation
 
-## Imagery
+The primary spine uses stable short codes:
 
-- **Style:** High-contrast monochrome product photography with a quiet, atmospheric smoke trace.
-- **Subjects:** the supplied RELX product image
-- **Treatment:** Use the supplied image as a compact identity mark or hero crop; preserve the black object, white field, and smoke. Keep imagery framed, never stretched, and pair it with precise interface chrome.
-- **Avoid:** invented logos, generic hero photography, unverifiable product screenshots
+- `DB` Dashboard
+- `SL` Sales
+- `PU` Purchasing
+- `IN` Inventory
+- `AC` Accounts
+- `RP` Reports
+- `AD` Administration
 
-## Layout
+Domain flyouts expose existing routes only. Permissions remove inaccessible areas and actions rather than leaving misleading dead controls.
 
-- **Radius:** 8px
-- **Border weight:** 1px
-- **Spacing:** 8px baseline grid; use 4px only for compact internal gaps
+## Responsive posture
 
-### Posture rules
-- Component kit covers Button, Card, Form, Navigation, and data display.
-- Touch targets are at least 44px; every focusable control has a visible focus ring.
-- Use the accent sparingly for primary actions, selected states, links, and key emphasis.
-- Default to 1px borders and 8px corners; avoid soft gradients and ornamental shadows.
-- Futuristic expression comes from instrument-panel hierarchy, scan rails, and controlled motion—not decorative noise.
-- Keep the supplied product image monochrome and use it as an identity anchor, not a repeated wallpaper.
+- Wide desktop: spine + work deck + context ledger.
+- Medium desktop/tablet: ledger collapses; work deck remains primary.
+- Mobile: spine becomes a bottom domain rail; forms become single-column; dense data remains usable without forcing desktop-only interaction.
+
+## Interaction rules
+
+- `Ctrl/Cmd + K` opens the TADPODS command line.
+- Flux identifies primary/current action, not decoration.
+- Live mint communicates healthy or active state.
+- Status is never communicated by colour alone.
+- Loading, empty, error, permission and destructive states use shared Foundry patterns.
+- Respect reduced-motion preferences.
+- Keyboard focus is always visible.
+
+## Implementation rule
+
+If a route needs a visual or interaction pattern Foundry does not provide, add that pattern to `@tadpods/ui` or the Foundry runtime layer first. Route code must not invent a competing micro-design system.
