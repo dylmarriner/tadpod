@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import './foundry-forms.css';
 import { publicApi } from '../lib/server-api';
 import { ServiceWorkerRegistration } from '../components/service-worker-registration';
 
