@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Button, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { ReverseAdjustmentButton } from '../../../../components/adjustment-forms';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
@@ -38,25 +38,24 @@ export default async function AdjustmentsPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Opening stock and adjustments</h1>
-        <p>Every guided opening-stock entry and stock adjustment, with the source, actor, and before/after stock on hand it produced.</p>
-      </div>
-      <Link href="/inventory/adjustments/new"><Button>Record opening stock or adjustment</Button></Link>
-    </header>
-    <Card title="Postings">
+    <PageHeader
+      kicker="Inventory"
+      title="Opening stock and adjustments"
+      description="Posted opening balances and stock corrections with their source, actor and before/after quantity."
+      actions={<Link className="button button--primary" href="/inventory/adjustments/new">Record adjustment</Link>}
+    />
+    <Card kicker="Immutable postings" title="Adjustment ledger">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
-        : page === null || page.items.length === 0 ? <EmptyState title="No adjustments yet" description="Opening stock and stock adjustments will appear here once posted." action={<Link href="/inventory/adjustments/new"><Button>Record the first posting</Button></Link>} />
+        : page === null || page.items.length === 0 ? <EmptyState title="No adjustments yet" description="Opening stock and stock adjustments will appear here once posted." action={<Link className="button button--primary" href="/inventory/adjustments/new">Record the first posting</Link>} />
         : <DataTable label="Opening stock and adjustments" headings={['Posted', 'Type', 'Product', 'Warehouse', 'Before', 'Change', 'After', 'Reason / notes', 'Actor', 'Reversal']}>
             {page.items.map((item) => <tr key={item.id}>
               <td>{new Date(item.postedAt).toLocaleString('en-NZ')}</td>
               <td><Badge tone={item.movementType === 'NEGATIVE_ADJUSTMENT' ? 'warning' : 'success'}>{movementLabel(item.movementType)}</Badge></td>
               <td><strong>{item.product.sku}</strong><div className="muted">{item.product.name}</div></td>
               <td>{item.warehouse.code}<div className="muted">{item.warehouse.name}</div></td>
-              <td>{item.beforeQuantity}</td>
-              <td>{Number(item.signedQuantity) > 0 ? '+' : ''}{item.signedQuantity}</td>
-              <td>{item.afterQuantity}</td>
+              <td data-quantity>{item.beforeQuantity}</td>
+              <td data-quantity>{Number(item.signedQuantity) > 0 ? '+' : ''}{item.signedQuantity}</td>
+              <td data-quantity>{item.afterQuantity}</td>
               <td>{item.notes ?? '—'}</td>
               <td>{item.actor ? <>{item.actor.displayName}<div className="muted">{item.actor.email}</div></> : 'System'}</td>
               <td>{item.reversal ? <Badge tone="neutral">Reversed {new Date(item.reversal.postedAt).toLocaleDateString('en-NZ')}</Badge> : <ReverseAdjustmentButton movementId={item.id} alreadyReversed={false} />}</td>

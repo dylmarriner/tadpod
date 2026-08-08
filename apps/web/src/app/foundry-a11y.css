@@ -1,0 +1,4 @@
+.fnd-domain-trigger,.fnd-command-line,.table-wrap th,.data-table th{color:var(--ink-2)}
+.button--sm,.fnd-command-line,.fnd-flyout__items a,.command-results a,.tabs a,.option-list button{min-height:44px}
+.tabs a{display:flex;align-items:center}
+@media(max-width:820px){.fnd-mobile-subnav{min-height:54px}.fnd-mobile-subnav a{min-height:44px;padding:8px 12px}.fnd-command-deck__actions .button{min-width:44px;min-height:44px}}

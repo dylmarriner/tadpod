@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Button, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
 
@@ -26,25 +26,24 @@ export default async function StockCountsPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Stock counts</h1>
-        <p>Draft worksheets that freeze expected quantity from the ledger, then post the counted variance as a correction.</p>
-      </div>
-      <Link href="/inventory/stock-counts/new"><Button>Start a stock count</Button></Link>
-    </header>
-    <Card title="Stock counts">
+    <PageHeader
+      kicker="Inventory"
+      title="Stock counts"
+      description="Count worksheets freeze expected ledger quantity, capture physical counts and post only the resulting variance."
+      actions={<Link className="button button--primary" href="/inventory/stock-counts/new">Start stock count</Link>}
+    />
+    <Card kicker="Count sessions" title="Stock counts">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
-        : page === null || page.items.length === 0 ? <EmptyState title="No stock counts yet" description="Stock counts will appear here once started." action={<Link href="/inventory/stock-counts/new"><Button>Start the first stock count</Button></Link>} />
+        : page === null || page.items.length === 0 ? <EmptyState title="No stock counts yet" description="Stock counts will appear here once started." action={<Link className="button button--primary" href="/inventory/stock-counts/new">Start the first stock count</Link>} />
         : <DataTable label="Stock counts" headings={['Started', 'Warehouse', 'Status', 'Progress', 'Started by', 'Posted', '']}>
             {page.items.map((item) => <tr key={item.id}>
               <td>{new Date(item.createdAt).toLocaleString('en-NZ')}</td>
               <td>{item.warehouse.code}<div className="muted">{item.warehouse.name}</div></td>
               <td><Badge tone={item.status === 'POSTED' ? 'neutral' : 'info'}>{item.status === 'POSTED' ? 'Posted' : 'Draft'}</Badge></td>
-              <td>{item.countedLineCount} / {item.lineCount} counted</td>
+              <td data-quantity>{item.countedLineCount} / {item.lineCount} counted</td>
               <td>{item.createdBy.displayName}<div className="muted">{item.createdBy.email}</div></td>
               <td>{item.postedAt ? new Date(item.postedAt).toLocaleString('en-NZ') : '—'}</td>
-              <td><Link href={`/inventory/stock-counts/${item.id}`}><Button variant="secondary">Open</Button></Link></td>
+              <td><Link className="button button--secondary" href={`/inventory/stock-counts/${item.id}`}>Open</Link></td>
             </tr>)}
           </DataTable>}
     </Card>

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { CategoryCreateForm, ProductArchiveButton, ProductCreateForm } from '../../../../components/catalogue-forms';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
@@ -36,23 +36,18 @@ export default async function ProductsPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Products</h1>
-        <p>SKUs, barcodes, pricing, and reorder settings. Stock on hand and movement history live under Adjustments, Transfers, and Stock counts.</p>
-      </div>
-    </header>
+    <PageHeader kicker="Inventory" title="Products" description="SKUs, barcodes, pricing and reorder settings. Posted movements remain the source of truth for stock on hand." />
     {loadError ? <div className="form-message" role="alert">{loadError}</div> : <>
       <div className="grid grid--2">
-        <Card title="Create product">
+        <Card kicker="New SKU" title="Create product">
           <ProductCreateForm categories={categories} taxRates={taxRates} />
         </Card>
-        <Card title="Categories">
+        <Card kicker="Classification" title="Categories">
           <CategoryCreateForm categories={categories} />
         </Card>
       </div>
       <div style={{ marginTop: '1rem' }}>
-        <Card title="Product catalogue">
+        <Card kicker="Catalogue" title="Product register">
           {products === null || products.items.length === 0
             ? <EmptyState title="No products yet" description="Create the first product above." />
             : <DataTable label="Products" headings={['SKU', 'Name', 'Unit', 'Sales price', 'Purchase cost', 'Reorder level', 'Status', '']}>
@@ -60,9 +55,9 @@ export default async function ProductsPage() {
                   <td><strong>{product.sku}</strong>{product.barcode ? <div className="muted">{product.barcode}</div> : null}</td>
                   <td><Link href={`/inventory/products/${product.id}`}>{product.name}</Link></td>
                   <td>{product.unitOfMeasure}</td>
-                  <td>{product.salesPrice}</td>
-                  <td>{product.purchaseCost}</td>
-                  <td>{product.reorderLevel}</td>
+                  <td data-money>{product.salesPrice}</td>
+                  <td data-money>{product.purchaseCost}</td>
+                  <td data-quantity>{product.reorderLevel}</td>
                   <td><Badge tone={product.status === 'ACTIVE' ? 'success' : 'neutral'}>{product.status}</Badge></td>
                   <td><ProductArchiveButton productId={product.id} archived={product.status === 'ARCHIVED'} /></td>
                 </tr>)}

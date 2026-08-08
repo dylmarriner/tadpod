@@ -1,29 +1,27 @@
 import Link from 'next/link';
-import { Card } from '@tadpods/ui';
+import { Card, PageHeader } from '@tadpods/ui';
 import { REPORTS, reportCategories } from '../../../lib/reports';
 
 export const metadata = { title: 'Reports' };
 
 export default function ReportsHubPage() {
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Reports</h1>
-        <p>Every report reads from posted ledger data and exports as CSV — a report's URL, with its date filters, is itself the saved report.</p>
-      </div>
-    </header>
+    <PageHeader
+      kicker="Reporting"
+      title="Reports"
+      description="Operational and account reports generated from posted ledger data. Date filters remain in the URL and every report can be exported as CSV."
+    />
     {reportCategories().map((category) => {
       const reports = REPORTS.filter((report) => report.category === category);
       if (reports.length === 0) return null;
-      return <div key={category} style={{ marginTop: '1rem' }}>
-        <h2 style={{ fontSize: '1.05rem', margin: '0 0 .6rem' }}>{category}</h2>
+      return <section key={category} style={{ marginTop: '1rem' }}>
+        <div className="fnd-page-kicker" style={{ marginBottom: 8 }}>{category}</div>
         <div className="grid grid--2">
-          {reports.map((report) => <Card key={report.key} title={report.label}>
-            <p>{report.description}</p>
-            <Link href={`/reports/${report.key}`}>Open {report.label.toLowerCase()}</Link>
+          {reports.map((report) => <Card key={report.key} kicker="Report" title={report.label} footer={<Link href={`/reports/${report.key}`}>Open report ›</Link>}>
+            <p className="muted" style={{ margin: 0 }}>{report.description}</p>
           </Card>)}
         </div>
-      </div>;
+      </section>;
     })}
   </>;
 }

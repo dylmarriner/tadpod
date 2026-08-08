@@ -3,13 +3,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { AppShell } from './app-shell';
 
+const navigationState = vi.hoisted(() => ({ pathname: '/dashboard' }));
+
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/dashboard',
-  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() })
+  usePathname: () => navigationState.pathname,
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() })
 }));
 
 describe('AppShell', () => {
-  it('shows the TADPODS navigation model and accessible skip link', () => {
+  it('renders the Foundry spine, command deck and context ledger', () => {
+    navigationState.pathname = '/dashboard';
     const html = renderToStaticMarkup(
       <AppShell
         user={{
@@ -20,27 +23,63 @@ describe('AppShell', () => {
         }}
         brand={{
           displayName: 'TADPODS',
-          primaryColour: '#0F766E',
-          accentColour: '#14B8A6'
+          primaryColour: '#FF9E2C',
+          accentColour: '#2DD4BF'
         }}
       >
         <p>Content</p>
       </AppShell>
     );
 
-    for (const section of [
-      'Dashboard',
-      'Sales',
-      'Purchasing',
-      'Inventory',
-      'Customers',
-      'Suppliers',
-      'Reports',
-      'Administration'
-    ]) {
+    for (const code of ['DB', 'SL', 'PU', 'IN', 'AC', 'RP', 'AD']) {
+      expect(html).toContain(code);
+    }
+    for (const section of ['Dashboard', 'Sales', 'Purchasing', 'Receipts', 'Inventory', 'Customers', 'Suppliers', 'Reports', 'Administration']) {
       expect(html).toContain(section);
     }
+
+    expect(html).toContain('fnd-spine');
+    expect(html).toContain('fnd-deck');
+    expect(html).toContain('fnd-ledger');
+    expect(html).toContain('Search records and actions');
+    expect(html).toContain('System context');
     expect(html).toContain('Skip to main content');
-    expect(html).toContain('TADPODS');
+  });
+
+  it('renders every active-domain destination into the mobile subnavigation', () => {
+    navigationState.pathname = '/sales/invoices';
+    const html = renderToStaticMarkup(
+      <AppShell
+        user={{ id: '1', displayName: 'Admin', email: 'admin@tadpods.local', permissions: ['*'] }}
+        brand={{ displayName: 'TADPODS', primaryColour: '#FF9E2C', accentColour: '#2DD4BF' }}
+      >
+        <p>Content</p>
+      </AppShell>
+    );
+
+    expect(html).toContain('fnd-mobile-subnav');
+    expect(html).toContain('Orders');
+    expect(html).toContain('Backorders');
+    expect(html).toContain('Invoicing');
+    expect(html).toContain('Payments');
+    expect(html).toContain('Credits');
+    expect(html).toContain('aria-current="page"');
+  });
+
+  it('does not expose navigation the user cannot read', () => {
+    navigationState.pathname = '/inventory/products';
+    const html = renderToStaticMarkup(
+      <AppShell
+        user={{ id: '2', displayName: 'Warehouse', email: 'warehouse@tadpods.local', permissions: ['inventory.read'] }}
+        brand={{ displayName: 'TADPODS', primaryColour: '#FF9E2C', accentColour: '#2DD4BF' }}
+      >
+        <p>Content</p>
+      </AppShell>
+    );
+
+    expect(html).toContain('Inventory');
+    expect(html).toContain('fnd-mobile-subnav');
+    expect(html).not.toContain('Customers');
+    expect(html).not.toContain('Administration');
   });
 });

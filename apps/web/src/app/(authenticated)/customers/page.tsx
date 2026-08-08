@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { CustomerCreateForm } from '../../../components/customer-forms';
 import { serverApi } from '../../../lib/server-api';
 import { ApiError } from '../../../lib/api';
@@ -18,18 +18,13 @@ export default async function CustomersPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Customers</h1>
-        <p>Customer master records, contact details, credit limits, and payment terms.</p>
-      </div>
-    </header>
+    <PageHeader kicker="Accounts" title="Customers" description="Customer master records, contact details, credit limits and payment terms." />
     {loadError ? <div className="form-message" role="alert">{loadError}</div> : <>
-      <Card title="Create customer">
+      <Card kicker="New account" title="Create customer">
         <CustomerCreateForm />
       </Card>
       <div style={{ marginTop: '1rem' }}>
-        <Card title="All customers">
+        <Card kicker="Register" title="All customers">
           {customers === null || customers.items.length === 0
             ? <EmptyState title="No customers yet" description="Create the first customer above." />
             : <DataTable label="Customers" headings={['Code', 'Name', 'Currency', 'Payment terms', 'Credit limit', 'Contact', 'Status']}>
@@ -38,7 +33,7 @@ export default async function CustomersPage() {
                   <td><Link href={`/customers/${customer.id}`}>{customer.name}</Link></td>
                   <td>{customer.currency}</td>
                   <td>{customer.paymentTermsDays} days</td>
-                  <td>{customer.creditLimit === '0.00' ? 'No limit' : customer.creditLimit}</td>
+                  <td data-money>{customer.creditLimit === '0.00' ? 'No limit' : customer.creditLimit}</td>
                   <td>{customer.contactEmail ?? '—'}</td>
                   <td><Badge tone={customer.active ? 'success' : 'neutral'}>{customer.active ? 'Active' : 'Inactive'}</Badge></td>
                 </tr>)}

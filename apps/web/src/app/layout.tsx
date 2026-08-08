@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import './foundry-forms.css';
+import './foundry-responsive.css';
+import './foundry-a11y.css';
 import { publicApi } from '../lib/server-api';
 import { ServiceWorkerRegistration } from '../components/service-worker-registration';
 
@@ -34,12 +37,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#111827'
+  themeColor: '#08080A'
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const brand = await publicApi<{ displayName: string; primaryColour: string; accentColour: string }>('/brand').catch(() => ({ displayName: 'TADPODS', primaryColour: '#1677FF', accentColour: '#6B7280' }));
-  return <html lang="en" className={inter.variable}><body style={{ '--brand': brand.primaryColour, '--accent': brand.accentColour } as React.CSSProperties}>
+  const brand = await publicApi<{ displayName: string; primaryColour: string; accentColour: string }>('/brand').catch(() => ({ displayName: 'TADPODS', primaryColour: '#FF9E2C', accentColour: '#2DD4BF' }));
+  return <html lang="en" className={inter.variable}><body style={{ '--tenant-brand': brand.primaryColour, '--tenant-accent': brand.accentColour } as React.CSSProperties}>
     <ServiceWorkerRegistration />
     {children}
   </body></html>;

@@ -1,37 +1,44 @@
-# Tadpod brand system
+# TADPODS Foundry brand system
 
 ## System summary
 
-Tadpod now combines its white, spacious foundation with a futuristic operating-surface posture: near-black Inter typography, dark instrument panels, a single blue action signal, 1px borders, 8px corners, and an 8px spacing rhythm. The system should feel precise, alert, and immediately usable.
+Foundry is the single application UI language for TADPODS. It combines warm graphite operational surfaces with Flux amber interaction, Live mint status, Steel metadata, chamfered geometry and compact telemetry typography. The result should feel like a purpose-built operations console rather than a generic ERP or accounting template.
 
-## Token contract
+## Runtime token contract
 
-- `background`: `#ffffff`
-- `surface`: `#f7f8fa`
-- `foreground`: `#111111`
-- `muted`: `#6b7280`
-- `border`: `#d9dee7`
-- `accent`: `#1677ff`
-- `accent-secondary`: `#6b7280` (inferred semantic alias from the supplied palette)
+- Canvas: `#08080A`
+- Primary surface: `#0E0E10`
+- Panel surface: `#141416`
+- Raised surface: `#1A1A1D`
+- Primary foreground: `#F7F6F3`
+- Secondary foreground: `#8D8A85`
+- Border: `#303036`
+- Flux / primary interaction: `#FF9E2C`
+- Live / healthy state: `#2DD4BF`
+- Steel / metadata: `#8AA9C4`
+- Danger: `#FF5A45`
+- Warning: `#FFD166`
 
-Implementation uses `brand.json` as the authored source and generated `system/variables*.css` as the runtime token layer. Do not edit generated system files directly.
+The production source is `apps/web/src/app/globals.css`. Shared component contracts live in `packages/ui/src/index.tsx`.
 
 ## Type and spacing
 
-Inter is used for display and body text with the declared system fallback stack. The base UI size is 14px. Use 8px increments for layout, 4px only for compact internal spacing, 8px corners, 1px borders, and a persisted default control height of 44px.
+Inter is the human-readable interface face. System monospace is used for domain codes, document identifiers, telemetry, money, quantities and keyboard guidance. Controls retain a minimum 44px target. Foundry uses compact spacing, 1px operational boundaries and clipped/chamfered corners rather than soft rounded-card styling.
 
 ## Component guidance
 
-Buttons, cards, form fields, navigation, and data display are the core kit. Keep one filled primary action in a group, use bordered surfaces to group related content, make labels explicit, and expose focus, hover, active, disabled, and validation states with paired foreground/background contrast.
+Foundry primitives must cover the shared interaction vocabulary before feature routes create new patterns. Primary actions use Flux. Live/healthy state uses mint. Neutral system metadata uses Steel. Destructive state uses red. Status must always include text or another non-colour cue.
+
+Shared primitives include buttons, badges, cards, fields, inputs, tables, page headers, alerts, tabs, loading/empty states and the command palette. Business components and page patterns should compose these rather than duplicating styling in route files.
 
 ## Voice and content
 
-Write clearly and concretely. Prefer “Create project” to “Get started on your journey.” Keep helper text short, name the next action, and explain advanced detail only when it changes a decision.
+Use plain operational language. Labels should tell staff what the record is or what the action does. Avoid accounting jargon when an everyday term is clearer, decorative microcopy, marketing language inside operational screens and vague calls to action.
 
-## Logo and imagery
+## Branding rule
 
-The user-supplied `assets/relx-product-logo.png` is the primary brand asset. It is a monochrome product photograph with visible RELX branding and smoke. Use it as a compact identity module or carefully cropped hero image; do not stretch, tile, or treat it as a transparent vector logo.
+TADPODS branding is present across every screen and output, but tenant-configurable brand colours do not replace Foundry's application control signals. Customer-facing documents may use configured branding where supported; application actions and status semantics remain consistent.
 
-## Evidence limits
+## Historical artifacts
 
-The pasted source contained no logo or imagery; the supplied attachment now closes that gap. No additional logo, font, or illustration assets are fabricated.
+Older generated blue/white previews and unrelated image experiments may remain in this directory for history until separately removed. They are not authoritative and must not be imported by production code.

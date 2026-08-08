@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { SupplierCreateForm } from '../../../components/supplier-forms';
 import { serverApi } from '../../../lib/server-api';
 import { ApiError } from '../../../lib/api';
@@ -18,18 +18,13 @@ export default async function SuppliersPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Suppliers</h1>
-        <p>Supplier master records, contact details, and payment terms. Purchase orders, bills, and payments are added in later purchasing workflows.</p>
-      </div>
-    </header>
+    <PageHeader kicker="Accounts" title="Suppliers" description="Supplier master records, contact details, payment terms and purchasing relationships." />
     {loadError ? <div className="form-message" role="alert">{loadError}</div> : <>
-      <Card title="Create supplier">
+      <Card kicker="New account" title="Create supplier">
         <SupplierCreateForm />
       </Card>
       <div style={{ marginTop: '1rem' }}>
-        <Card title="All suppliers">
+        <Card kicker="Register" title="All suppliers">
           {suppliers === null || suppliers.items.length === 0
             ? <EmptyState title="No suppliers yet" description="Create the first supplier above." />
             : <DataTable label="Suppliers" headings={['Code', 'Name', 'Currency', 'Payment terms', 'Contact', 'Status']}>
