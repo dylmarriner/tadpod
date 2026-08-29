@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Button, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
 
@@ -28,26 +28,25 @@ export default async function SalesOrdersPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Sales orders</h1>
-        <p>Customer demand. Confirming reserves what stock is available now and backorders the rest.</p>
-      </div>
-      <div className="inline">
-        <Link href="/sales/backorders"><Button variant="secondary">Backorders</Button></Link>
-        <Link href="/sales/orders/new"><Button>New sales order</Button></Link>
-      </div>
-    </header>
-    <Card title="Orders">
+    <PageHeader
+      kicker="Sales"
+      title="Sales orders"
+      description="Customer demand. Confirming an order reserves available stock now and backorders the remainder."
+      actions={<div className="inline">
+        <Link className="button button--secondary" href="/sales/backorders">Backorders</Link>
+        <Link className="button button--primary" href="/sales/orders/new">New sales order</Link>
+      </div>}
+    />
+    <Card kicker="Register" title="Orders">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
         : orders === null || orders.items.length === 0
-          ? <EmptyState title="No sales orders yet" description="Create the first sales order above." action={<Link href="/sales/orders/new"><Button>Create the first order</Button></Link>} />
+          ? <EmptyState title="No sales orders yet" description="Create the first sales order to begin reserving customer demand." action={<Link className="button button--primary" href="/sales/orders/new">Create the first order</Link>} />
           : <DataTable label="Sales orders" headings={['Order', 'Customer', 'Status', 'Total', 'Created']}>
               {orders.items.map((order) => <tr key={order.id}>
                 <td><Link href={`/sales/orders/${order.id}`}>{order.orderNumber}</Link></td>
                 <td>{order.customer.code} — {order.customer.name}</td>
                 <td><Badge tone={statusTone(order.status)}>{order.status.replaceAll('_', ' ')}</Badge></td>
-                <td>{order.totalAmount} {order.currency}</td>
+                <td data-money>{order.totalAmount} {order.currency}</td>
                 <td>{new Date(order.createdAt).toLocaleDateString('en-NZ')}</td>
               </tr>)}
             </DataTable>}

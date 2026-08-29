@@ -1,0 +1,44 @@
+name: Verify Foundry UI
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/ui/**'
+      - 'packages/contracts/**'
+      - 'design-system/**'
+      - '.github/workflows/foundry-ui.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foundry-ui-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @tadpods/ui lint
+      - run: pnpm --filter @tadpods/ui typecheck
+      - run: pnpm --filter @tadpods/ui test
+      - run: pnpm --filter @tadpods/ui build
+      - run: pnpm --filter @tadpods/contracts lint
+      - run: pnpm --filter @tadpods/contracts test
+      - run: pnpm --filter @tadpods/contracts build
+      - run: pnpm --filter @tadpods/web lint
+      - run: pnpm --filter @tadpods/web typecheck
+      - run: pnpm --filter @tadpods/web test
+      - run: pnpm --filter @tadpods/web build

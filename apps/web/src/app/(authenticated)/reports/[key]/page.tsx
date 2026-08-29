@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Card, DataTable, EmptyState, Field, TextInput, Button } from '@tadpods/ui';
+import { Card, DataTable, EmptyState, Field, TextInput, Button, PageHeader } from '@tadpods/ui';
 import { findReport } from '../../../../lib/reports';
 import { serverApi } from '../../../../lib/server-api';
 import { apiUrl, ApiError } from '../../../../lib/api';
@@ -42,17 +42,16 @@ export default async function ReportViewerPage({
   const csvHref = `${apiUrl}/reports/${key}?${csvQuery.toString()}`;
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>{report.label}</h1>
-        <p>{report.description}</p>
-      </div>
-      <div className="inline">
+    <PageHeader
+      kicker="Reporting"
+      title={report.label}
+      description={report.description}
+      actions={<div className="inline">
         <Link href="/reports">All reports</Link>
         <a className="button button--secondary" href={csvHref}>Download CSV</a>
-      </div>
-    </header>
-    {report.dateRange ? <Card title="Date range">
+      </div>}
+    />
+    {report.dateRange ? <Card kicker="Filter" title="Date range">
       <form method="get" className="inline">
         <Field label="From"><TextInput type="date" name="from" defaultValue={from ?? ''} /></Field>
         <Field label="To"><TextInput type="date" name="to" defaultValue={to ?? ''} /></Field>
@@ -61,7 +60,7 @@ export default async function ReportViewerPage({
       </form>
     </Card> : null}
     <div style={{ marginTop: '1rem' }}>
-      <Card title="Results">
+      <Card kicker="Dataset" title="Results">
         {loadError ? <div className="form-message" role="alert">{loadError}</div>
           : rows.length === 0
             ? <EmptyState title="No rows" description="No data matches this report yet." />

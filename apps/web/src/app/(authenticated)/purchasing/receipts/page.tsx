@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
 
@@ -22,16 +22,11 @@ export default async function GoodsReceiptsPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Goods receipts</h1>
-        <p>Stock posted against a purchase order. Receive goods from an order&apos;s detail page.</p>
-      </div>
-    </header>
-    <Card title="Receipts">
+    <PageHeader kicker="Purchasing" title="Goods receipts" description="Posted stock receipts against purchase orders. New receipts are created from the relevant purchase order detail page." />
+    <Card kicker="Receiving ledger" title="Receipts">
       {loadError ? <div className="form-message" role="alert">{loadError}</div>
         : receipts === null || receipts.items.length === 0
-          ? <EmptyState title="No goods receipts yet" description="Receive goods from a confirmed purchase order to see it here." />
+          ? <EmptyState title="No goods receipts yet" description="Receive goods from a confirmed purchase order to see the posting here." />
           : <DataTable label="Goods receipts" headings={['Receipt', 'Purchase order', 'Warehouse', 'Received by', 'Status', 'Created']}>
               {receipts.items.map((receipt) => <tr key={receipt.id}>
                 <td><Link href={`/purchasing/receipts/${receipt.id}`}>{receipt.receiptNumber}</Link></td>

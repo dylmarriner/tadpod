@@ -1,4 +1,4 @@
-import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { WarehouseArchiveToggle, WarehouseCreateForm } from '../../../../components/catalogue-forms';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
@@ -17,18 +17,13 @@ export default async function WarehousesPage() {
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Warehouses</h1>
-        <p>Stock locations. Exactly one warehouse can be the default used to pre-fill stock-affecting forms.</p>
-      </div>
-    </header>
+    <PageHeader kicker="Inventory" title="Warehouses" description="Stock locations and the default warehouse used to pre-fill stock-affecting workflows." />
     {loadError ? <div className="form-message" role="alert">{loadError}</div> : <>
-      <Card title="Create warehouse">
+      <Card kicker="New location" title="Create warehouse">
         <WarehouseCreateForm />
       </Card>
       <div style={{ marginTop: '1rem' }}>
-        <Card title="All warehouses">
+        <Card kicker="Locations" title="Warehouse register">
           {warehouses === null || warehouses.items.length === 0
             ? <EmptyState title="No warehouses yet" description="Create the first warehouse above." />
             : <DataTable label="Warehouses" headings={['Code', 'Name', 'Location', 'Default', 'Status', '']}>

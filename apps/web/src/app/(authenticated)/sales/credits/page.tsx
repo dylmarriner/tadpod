@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Badge, Card, DataTable, EmptyState } from '@tadpods/ui';
+import { Badge, Card, DataTable, EmptyState, PageHeader } from '@tadpods/ui';
 import { CreateCreditForm } from '../../../../components/customer-invoice-forms';
 import { serverApi } from '../../../../lib/server-api';
 import { ApiError } from '../../../../lib/api';
@@ -24,18 +24,13 @@ export default async function CustomerCreditsPage({ searchParams }: { searchPara
   }
 
   return <>
-    <header className="page-header">
-      <div>
-        <h1>Customer credits</h1>
-        <p>Unapplied value on a customer's account — raised automatically from an overpayment, or manually here.</p>
-      </div>
-    </header>
+    <PageHeader kicker="Sales" title="Customer credits" description="Unapplied value on customer accounts, created by overpayments or deliberate manual credits." />
     {loadError ? <div className="form-message" role="alert">{loadError}</div> : <>
-      {customers.length > 0 ? <Card title="Create manual credit">
+      {customers.length > 0 ? <Card kicker="Account value" title="Create manual credit">
         <CreateCreditForm customerId={customerId ?? customers[0]!.id} />
       </Card> : null}
       <div style={{ marginTop: '1rem' }}>
-        <Card title="All credits">
+        <Card kicker="Register" title="All credits">
           {credits === null || credits.items.length === 0
             ? <EmptyState title="No credits yet" description="Credits appear here from overpayments or manual grants." />
             : <DataTable label="Customer credits" headings={['Credit', 'Customer', 'Source', 'Amount', 'Remaining']}>
@@ -43,8 +38,8 @@ export default async function CustomerCreditsPage({ searchParams }: { searchPara
                   <td><Link href={`/sales/credits/${credit.id}`}>{credit.creditNumber}</Link></td>
                   <td>{credit.customer.code} — {credit.customer.name}</td>
                   <td><Badge tone="info">{credit.sourceType}</Badge></td>
-                  <td>{credit.amount} {credit.currency}</td>
-                  <td>{credit.remaining}</td>
+                  <td data-money>{credit.amount} {credit.currency}</td>
+                  <td data-money>{credit.remaining}</td>
                 </tr>)}
               </DataTable>}
         </Card>
