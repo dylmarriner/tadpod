@@ -67,3 +67,28 @@ curl -s http://localhost:8000/api/devices/<id> \
 
 Hand the location and any webcam evidence to the police rather than confronting
 the holder yourself.
+
+## SIM card in the laptop (recommended)
+
+Putting a SIM in the laptop's WWAN modem is the most reliable setup:
+
+- **Always-on connectivity.** The laptop has its own internet whenever it's
+  powered on, so it phones home to kubuntux even if the holder never joins a
+  Wi-Fi network. (It still needs kubuntux to be internet-reachable — see step 3;
+  a mesh VPN like Tailscale over the cellular link works well.)
+- **Real location.** The agent reads location straight from the modem via
+  ModemManager — a GNSS/GPS fix when the modem has one, otherwise cell-tower
+  identity (MCC/MNC/LAC/CID) — and prefers it over coarse IP geolocation.
+
+Enable the modem's GPS once (Linux, ModemManager):
+
+```bash
+mmcli -L                       # find the modem index, e.g. 0
+mmcli -m 0 --location-enable-gps-raw --location-enable-gps-nmea
+mmcli -m 0 --location-get      # confirm you get a fix
+```
+
+After that the agent picks it up automatically — a check-in from a located
+device shows `"accuracy": "gnss"` with real lat/long, or `"accuracy":
+"cell-tower"` with the serving cell in `extra`. No modem? It silently falls
+back to IP geolocation, so the same agent runs everywhere.
