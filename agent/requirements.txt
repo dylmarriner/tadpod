@@ -1,0 +1,5 @@
+requests==2.32.3
+# Optional — only needed for evidence capture while stolen. The agent degrades
+# gracefully (skips a capture) if either is missing.
+opencv-python-headless==4.10.0.84  ; platform_system != "Linux" or platform_machine != "aarch64"
+mss==9.0.2

@@ -1,7 +1,15 @@
-node_modules/
-dist/
-build/
-coverage/
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Sentinel runtime state (never commit tokens, DBs or captured evidence)
+server/sentinel.db
+server/evidence/
+agent/config.json
+
+# misc
 .env
 .env.*
 !.env.example

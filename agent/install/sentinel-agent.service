@@ -1,0 +1,14 @@
+[Unit]
+Description=Sentinel anti-theft agent
+After=network-online.target graphical-session.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/sentinel/agent
+ExecStart=/opt/sentinel/agent/.venv/bin/python /opt/sentinel/agent/sentinel_agent.py
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target
