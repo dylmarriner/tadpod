@@ -1,0 +1,10 @@
+{
+  "server_url": "http://kubuntux:8000",
+  "device_token": "PASTE-THE-device_token-FROM-ENROLMENT-HERE",
+  "checkin_interval_ok": 3600,
+  "checkin_interval_stolen": 120,
+  "capture_webcam": true,
+  "capture_screenshot": true,
+  "show_lock_message": true,
+  "verify_tls": false
+}

@@ -1,22 +1,17 @@
-node_modules/
-dist/
-.next/
-coverage/
-playwright-report/
-test-results/
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Sentinel runtime state (never commit tokens, DBs or captured evidence)
+server/sentinel.db
+server/evidence/
+agent/config.json
+
+# misc
 .env
 .env.*
 !.env.example
 *.log
 .DS_Store
-.superpowers/
-.worktrees/
-packages/database/prisma/dev.db
-
-# build artifacts
-.turbo/
-*.tsbuildinfo
-
-# database backups (scripts/backup.sh default output dir) — never commit a data dump
-/backups/
-*.dump
