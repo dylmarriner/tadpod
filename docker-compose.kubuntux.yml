@@ -1,0 +1,19 @@
+# Run the Sentinel home server on your kubuntux box.
+#
+#   export SENTINEL_ADMIN_TOKEN="$(openssl rand -base64 36)"   # keep this safe
+#   docker compose -f docker-compose.kubuntux.yml up -d
+#
+# The server then listens on kubuntux:8000. The DB and captured evidence live in
+# the ./sentinel-data volume on kubuntux so they survive container restarts.
+services:
+  sentinel:
+    build: ./server
+    container_name: sentinel
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Required. Set it in your shell before `up`, or hardcode here (less safe).
+      SENTINEL_ADMIN_TOKEN: "${SENTINEL_ADMIN_TOKEN:?set SENTINEL_ADMIN_TOKEN before starting}"
+    volumes:
+      - ./sentinel-data:/data

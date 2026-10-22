@@ -98,6 +98,10 @@ curl -s http://localhost:8000/api/devices/<id> \
 
 To run the agent automatically at boot, see [`agent/install/README.md`](agent/install/README.md).
 
+To host the server on your own `kubuntux` box and point the laptop at it, see
+[`docs/KUBUNTUX.md`](docs/KUBUNTUX.md) — including how to make kubuntux reachable
+when the laptop leaves your home network.
+
 ## Layout
 
 ```
