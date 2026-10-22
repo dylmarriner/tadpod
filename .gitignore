@@ -1,22 +1,9 @@
 node_modules/
 dist/
-.next/
+build/
 coverage/
-playwright-report/
-test-results/
 .env
 .env.*
 !.env.example
 *.log
 .DS_Store
-.superpowers/
-.worktrees/
-packages/database/prisma/dev.db
-
-# build artifacts
-.turbo/
-*.tsbuildinfo
-
-# database backups (scripts/backup.sh default output dir) — never commit a data dump
-/backups/
-*.dump
